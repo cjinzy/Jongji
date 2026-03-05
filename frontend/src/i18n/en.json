@@ -1,7 +1,149 @@
 {
   "app": { "name": "Jongji" },
-  "auth": { "login": "Login", "register": "Register", "logout": "Logout", "email": "Email", "password": "Password", "googleLogin": "Login with Google" },
-  "nav": { "kanban": "Kanban", "table": "Table", "gantt": "Gantt", "dashboard": "Dashboard", "settings": "Settings" },
-  "task": { "create": "Create Task", "title": "Title", "description": "Description", "status": "Status", "priority": "Priority", "assignee": "Assignee" },
-  "common": { "save": "Save", "cancel": "Cancel", "delete": "Delete", "edit": "Edit", "search": "Search", "loading": "Loading..." }
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "logout": "Logout",
+    "email": "Email",
+    "password": "Password",
+    "googleLogin": "Continue with Google",
+    "googleRegister": "Sign up with Google",
+    "name": "Full name",
+    "confirmPassword": "Confirm password",
+    "orEmail": "or email",
+    "loginHeadline": "Sign in to your account",
+    "registerHeadline": "Create your account",
+    "noAccount": "No account yet?",
+    "haveAccount": "Already have an account?",
+    "fieldRequired": "Please fill in all fields.",
+    "passwordMismatch": "Passwords do not match.",
+    "passwordTooShort": "Password must be at least 8 characters.",
+    "invalidCredentials": "Invalid email or password.",
+    "registerError": "Something went wrong. Please try again."
+  },
+  "nav": {
+    "kanban": "Kanban",
+    "table": "Table",
+    "gantt": "Gantt",
+    "dashboard": "Dashboard",
+    "settings": "Settings",
+    "myIssues": "My Issues",
+    "favorites": "Favorites",
+    "projects": "Projects",
+    "noTeam": "No Team"
+  },
+  "task": {
+    "create": "Create Task",
+    "title": "Title",
+    "description": "Description",
+    "status": "Status",
+    "priority": "Priority",
+    "assignee": "Assignee",
+    "labels": "Labels",
+    "tags": "Tags",
+    "startDate": "Start Date",
+    "dueDate": "Due Date",
+    "unassigned": "Unassigned",
+    "noDescription": "Click to add description...",
+    "comments": "Comments",
+    "writeComment": "Write a comment...",
+    "blocked": "Blocked by another task"
+  },
+  "kanban": {
+    "title": "Kanban",
+    "unassignedFilter": "Unassigned",
+    "addTask": "Add task",
+    "empty": "Empty",
+    "refresh": "Refresh"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search",
+    "loading": "Loading...",
+    "next": "Next",
+    "back": "Back",
+    "skip": "Skip",
+    "complete": "Complete",
+    "create": "Create",
+    "optional": "Optional",
+    "name": "Name",
+    "description": "Description",
+    "key": "Key"
+  },
+  "setup": {
+    "title": "Setup Jongji",
+    "subtitle": "Set up your admin account before getting started",
+    "step1": {
+      "label": "Admin Account",
+      "title": "Create Admin Account",
+      "desc": "Enter your admin credentials to manage the system",
+      "adminName": "Admin Name",
+      "adminEmail": "Admin Email",
+      "adminPassword": "Password",
+      "passwordHint": "Must be at least 8 characters"
+    },
+    "step2": {
+      "label": "App Name",
+      "title": "Set App Name",
+      "desc": "Choose a name for your workspace",
+      "appName": "App Name",
+      "appNamePlaceholder": "Jongji"
+    },
+    "step3": {
+      "label": "Confirm",
+      "title": "Confirm Setup",
+      "desc": "Review the information below and complete setup",
+      "adminAccount": "Admin Account",
+      "appName": "App Name",
+      "submit": "Complete Setup"
+    },
+    "success": "Setup complete!",
+    "error": "An error occurred during setup"
+  },
+  "onboarding": {
+    "title": "Welcome",
+    "subtitle": "Just a few steps and you're ready to go",
+    "step1": {
+      "label": "Team",
+      "title": "Create or join a team",
+      "createTab": "Create a team",
+      "joinTab": "Join a team",
+      "teamName": "Team Name",
+      "teamNamePlaceholder": "e.g. Engineering",
+      "teamDesc": "Team Description",
+      "teamDescPlaceholder": "Briefly describe your team",
+      "inviteCode": "Invite Code",
+      "inviteCodePlaceholder": "Enter invite code"
+    },
+    "step2": {
+      "label": "Project",
+      "title": "Create your first project",
+      "projectName": "Project Name",
+      "projectNamePlaceholder": "e.g. Main Project",
+      "projectKey": "Project Key",
+      "projectKeyHint": "Used in issue IDs (e.g. MAIN-1)",
+      "projectDesc": "Project Description"
+    },
+    "step3": {
+      "label": "Start",
+      "title": "You're all set!",
+      "desc": "Manage your work efficiently with Jongji",
+      "tip1Title": "Create Issues",
+      "tip1Desc": "Select a project in the sidebar and create new issues",
+      "tip2Title": "Invite Teammates",
+      "tip2Desc": "Invite teammates from Settings and collaborate",
+      "tip3Title": "Switch Views",
+      "tip3Desc": "View your work as Kanban, Table, or Gantt chart",
+      "goToApp": "Get Started"
+    },
+    "skipAll": "Set up later"
+  },
+  "sidebar": {
+    "createTeam": "Create Team",
+    "noProjects": "No projects",
+    "addProject": "Add Project"
+  }
 }
