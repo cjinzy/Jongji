@@ -13,7 +13,9 @@ from loguru import logger
 from jongji.api.admin import router as admin_router
 from jongji.api.attachments import router as attachments_router
 from jongji.api.auth import router as auth_router
+from jongji.api.calendar import router as calendar_router
 from jongji.api.comments import router as comments_router
+from jongji.api.dashboard import router as dashboard_router
 from jongji.api.events import router as events_router
 from jongji.api.export import router as export_router
 from jongji.api.health import router as health_router
@@ -79,4 +81,6 @@ app.include_router(search_router)
 app.include_router(rss_router)
 app.include_router(attachments_router)
 app.include_router(export_router)
+app.include_router(dashboard_router)
+app.include_router(calendar_router)
 app.mount("/mcp", mcp.http_app())

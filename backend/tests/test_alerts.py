@@ -12,7 +12,6 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from jongji.models.alert import AlertLog
 from jongji.models.enums import AlertLogStatus, TaskStatus, TeamRole
 from jongji.models.project import Project
 from jongji.models.task import Task, TaskWatcher
