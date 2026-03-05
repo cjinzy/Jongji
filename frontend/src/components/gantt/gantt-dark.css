@@ -1,0 +1,201 @@
+/**
+ * Dark theme overrides for frappe-gantt.
+ * Targets the SVG-based gantt chart elements with CSS variable tokens.
+ */
+
+
+/* ── Container ─────────────────────────────────────────────────── */
+.gantt-container {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* ── SVG wrapper ────────────────────────────────────────────────── */
+.gantt .grid-background {
+  fill: var(--color-bg-primary);
+}
+
+.gantt .grid-header {
+  fill: var(--color-bg-secondary);
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+
+.gantt .grid-row {
+  fill: var(--color-bg-primary);
+}
+
+.gantt .grid-row:nth-child(even) {
+  fill: var(--color-bg-secondary);
+}
+
+.gantt .row-line {
+  stroke: var(--color-border);
+  stroke-width: 0.5;
+  opacity: 0.6;
+}
+
+.gantt .tick {
+  stroke: var(--color-border);
+  stroke-width: 0.5;
+}
+
+.gantt .tick.thick {
+  stroke: var(--color-border);
+  stroke-width: 1;
+  opacity: 0.8;
+}
+
+/* ── Header labels ──────────────────────────────────────────────── */
+.gantt .upper-text,
+.gantt .lower-text {
+  fill: var(--color-text-tertiary);
+  font-size: 11px;
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.gantt .upper-text {
+  fill: var(--color-text-secondary);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ── Today marker ───────────────────────────────────────────────── */
+.gantt .today-highlight {
+  fill: rgba(91, 106, 240, 0.07);
+  stroke: rgba(91, 106, 240, 0.35);
+  stroke-width: 1;
+}
+
+/* ── Task bars — base ────────────────────────────────────────────── */
+.gantt .bar {
+  fill: #1E2340;
+  stroke: rgba(91, 106, 240, 0.4);
+  stroke-width: 1;
+  rx: 4;
+}
+
+.gantt .bar-progress {
+  fill: var(--color-accent);
+  rx: 4;
+}
+
+.gantt .bar-label {
+  fill: var(--color-text-primary);
+  font-size: 12px;
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-weight: 500;
+}
+
+.gantt .bar-label.big {
+  fill: var(--color-text-secondary);
+}
+
+/* ── Status-specific bar colors ─────────────────────────────────── */
+/* Applied via custom_class on each task */
+.gantt .bar-wrapper.status-TODO .bar {
+  fill: #1a1f3a;
+  stroke: rgba(91, 106, 240, 0.45);
+}
+.gantt .bar-wrapper.status-TODO .bar-progress {
+  fill: #5B6AF0;
+}
+
+.gantt .bar-wrapper.status-PROGRESS .bar {
+  fill: #2a1f0d;
+  stroke: rgba(245, 158, 11, 0.4);
+}
+.gantt .bar-wrapper.status-PROGRESS .bar-progress {
+  fill: #F59E0B;
+}
+
+.gantt .bar-wrapper.status-REVIEW .bar {
+  fill: #1e1530;
+  stroke: rgba(139, 92, 246, 0.4);
+}
+.gantt .bar-wrapper.status-REVIEW .bar-progress {
+  fill: #8B5CF6;
+}
+
+.gantt .bar-wrapper.status-DONE .bar {
+  fill: #0d2218;
+  stroke: rgba(34, 197, 94, 0.35);
+}
+.gantt .bar-wrapper.status-DONE .bar-progress {
+  fill: #22C55E;
+}
+
+.gantt .bar-wrapper.status-BACKLOG .bar {
+  fill: #16161a;
+  stroke: rgba(107, 107, 118, 0.4);
+}
+.gantt .bar-wrapper.status-BACKLOG .bar-progress {
+  fill: #6B6B76;
+}
+
+.gantt .bar-wrapper.status-REOPEN .bar {
+  fill: #2a1111;
+  stroke: rgba(239, 68, 68, 0.4);
+}
+.gantt .bar-wrapper.status-REOPEN .bar-progress {
+  fill: #EF4444;
+}
+
+.gantt .bar-wrapper.status-CLOSED .bar {
+  fill: #141418;
+  stroke: rgba(55, 65, 81, 0.5);
+}
+.gantt .bar-wrapper.status-CLOSED .bar-progress {
+  fill: #374151;
+}
+
+/* ── Bar handle (resize) ─────────────────────────────────────────── */
+.gantt .handle {
+  fill: rgba(255, 255, 255, 0.15);
+  cursor: ew-resize;
+  rx: 2;
+}
+
+.gantt .handle:hover {
+  fill: rgba(255, 255, 255, 0.3);
+}
+
+/* ── Arrow connectors ───────────────────────────────────────────── */
+.gantt .arrow {
+  stroke: var(--color-text-tertiary);
+  stroke-width: 1.5;
+  fill: none;
+  opacity: 0.6;
+}
+
+/* ── Popup tooltip ─────────────────────────────────────────────── */
+.gantt-container .popup-wrapper {
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 10px 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  font-family: 'Inter', -apple-system, sans-serif;
+}
+
+.gantt-container .popup-wrapper .title {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.gantt-container .popup-wrapper .subtitle {
+  color: var(--color-text-tertiary);
+  font-size: 11px;
+}
+
+.gantt-container .pointer {
+  border-top-color: var(--color-border);
+}
