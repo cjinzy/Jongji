@@ -3,7 +3,12 @@
 pydantic-settings를 사용하여 환경 변수 및 .env 파일에서 설정을 로드합니다.
 """
 
+import secrets
+import warnings
+
 from pydantic_settings import BaseSettings
+
+_INSECURE_DEFAULT_KEY = "change-me-in-production"
 
 
 class Settings(BaseSettings):
@@ -16,7 +21,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://jongji:jongji@localhost:5432/jongji"
 
     # Auth
-    SECRET_KEY: str = "change-me-in-production"
+    SECRET_KEY: str = secrets.token_hex(32)
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
@@ -35,3 +40,10 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+if settings.SECRET_KEY == _INSECURE_DEFAULT_KEY:
+    warnings.warn(
+        "SECRET_KEY is using the insecure default value. "
+        "Set SECRET_KEY environment variable for production use.",
+        stacklevel=1,
+    )

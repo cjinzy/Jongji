@@ -86,16 +86,14 @@ async def detect_cycle(
     """
     visited: set[uuid.UUID] = set()
     stack = [new_blocker_id]
-    depth = 0
 
-    while stack and depth < MAX_CHAIN_DEPTH:
+    while stack and len(visited) < MAX_CHAIN_DEPTH:
         current = stack.pop()
         if current == task_id:
             return True
         if current in visited:
             continue
         visited.add(current)
-        depth += 1
 
         # current가 blocked_by하는 작업들을 가져옴
         result = await db.execute(

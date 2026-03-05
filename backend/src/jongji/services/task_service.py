@@ -212,17 +212,20 @@ async def update_task(
     ):
         raise ValueError("담당자가 프로젝트 멤버가 아닙니다.")
 
-    # 변경 이력 기록
+    # 변경 이력 기록 — 타입 안전한 비교 (str() 비교는 None/"None" 오탐 유발)
     for field_name, new_value in update_data.items():
         old_value = getattr(task, field_name, None)
-        if str(old_value) != str(new_value):
+        # UUID 등 타입이 다를 수 있으므로 str 변환 후 비교하되, None은 별도 처리
+        old_str = str(old_value) if old_value is not None else None
+        new_str = str(new_value) if new_value is not None else None
+        if old_str != new_str:
             db.add(
                 TaskHistory(
                     task_id=task.id,
                     user_id=user.id,
                     field=field_name,
-                    old_value=str(old_value) if old_value is not None else None,
-                    new_value=str(new_value) if new_value is not None else None,
+                    old_value=old_str,
+                    new_value=new_str,
                 )
             )
             setattr(task, field_name, new_value)
@@ -370,6 +373,8 @@ async def clone_task(
         select(Project).where(Project.id == original.project_id).with_for_update()
     )
     project = result.scalar_one_or_none()
+    if not project:
+        raise ValueError("프로젝트를 찾을 수 없습니다.")
     new_number = project.task_counter + 1
     project.task_counter = new_number
 

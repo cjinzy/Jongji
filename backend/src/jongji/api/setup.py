@@ -7,6 +7,7 @@ import traceback
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from loguru import logger
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from jongji.config import settings
@@ -62,6 +63,9 @@ async def create_setup_admin(
     Returns:
         UserResponse: 생성된 관리자 정보.
     """
+    # Advisory lock으로 동시 요청 방지 (TOCTOU 레이스 컨디션 방어)
+    await db.execute(text("SELECT pg_advisory_xact_lock(42)"))
+
     completed = await check_setup_completed(db)
     if completed:
         raise HTTPException(
@@ -140,6 +144,9 @@ async def complete_setup(db: AsyncSession = Depends(get_db)):
     Returns:
         dict: 완료 성공 메시지.
     """
+    # Advisory lock으로 동시 요청 방지
+    await db.execute(text("SELECT pg_advisory_xact_lock(42)"))
+
     completed = await check_setup_completed(db)
     if completed:
         raise HTTPException(
