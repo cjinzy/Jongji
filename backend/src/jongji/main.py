@@ -12,6 +12,7 @@ from loguru import logger
 
 from jongji.api.admin import router as admin_router
 from jongji.api.attachments import router as attachments_router
+from jongji.api.audit import router as audit_router
 from jongji.api.auth import router as auth_router
 from jongji.api.calendar import router as calendar_router
 from jongji.api.comments import router as comments_router
@@ -24,6 +25,7 @@ from jongji.api.labels import router as labels_router
 from jongji.api.projects import router as projects_router
 from jongji.api.rss import router as rss_router
 from jongji.api.search import router as search_router
+from jongji.api.sessions import router as sessions_router
 from jongji.api.setup import router as setup_router
 from jongji.api.tags import router as tags_router
 from jongji.api.tasks import router as tasks_router
@@ -64,6 +66,8 @@ app.add_middleware(
 )
 
 app.include_router(health_router, prefix="/api/v1")
+app.include_router(audit_router)
+app.include_router(sessions_router)
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(setup_router, prefix="/api/v1")
 app.include_router(users_router)
