@@ -18,6 +18,8 @@ from jongji.api.health import router as health_router
 from jongji.api.invites import router as invites_router
 from jongji.api.labels import router as labels_router
 from jongji.api.projects import router as projects_router
+from jongji.api.rss import router as rss_router
+from jongji.api.search import router as search_router
 from jongji.api.setup import router as setup_router
 from jongji.api.tags import router as tags_router
 from jongji.api.tasks import router as tasks_router
@@ -25,6 +27,7 @@ from jongji.api.teams import router as teams_router
 from jongji.api.templates import router as templates_router
 from jongji.api.users import router as users_router
 from jongji.config import settings
+from jongji.services.alert.scheduler import start_scheduler, stop_scheduler
 
 # loguru JSON 로깅 설정
 logger.remove()
@@ -39,7 +42,9 @@ async def lifespan(app: FastAPI):
         app: FastAPI 애플리케이션 인스턴스.
     """
     logger.info("Starting Jongji server")
+    start_scheduler()
     yield
+    stop_scheduler()
     logger.info("Shutting down Jongji server")
 
 
@@ -67,3 +72,5 @@ app.include_router(tags_router)
 app.include_router(comments_router)
 app.include_router(templates_router)
 app.include_router(events_router)
+app.include_router(search_router)
+app.include_router(rss_router)
