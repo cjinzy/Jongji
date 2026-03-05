@@ -11,9 +11,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
 from jongji.api.admin import router as admin_router
+from jongji.api.attachments import router as attachments_router
 from jongji.api.auth import router as auth_router
 from jongji.api.comments import router as comments_router
 from jongji.api.events import router as events_router
+from jongji.api.export import router as export_router
 from jongji.api.health import router as health_router
 from jongji.api.invites import router as invites_router
 from jongji.api.labels import router as labels_router
@@ -27,6 +29,7 @@ from jongji.api.teams import router as teams_router
 from jongji.api.templates import router as templates_router
 from jongji.api.users import router as users_router
 from jongji.config import settings
+from jongji.mcp.tools import mcp
 from jongji.services.alert.scheduler import start_scheduler, stop_scheduler
 
 # loguru JSON 로깅 설정
@@ -74,3 +77,6 @@ app.include_router(templates_router)
 app.include_router(events_router)
 app.include_router(search_router)
 app.include_router(rss_router)
+app.include_router(attachments_router)
+app.include_router(export_router)
+app.mount("/mcp", mcp.http_app())
