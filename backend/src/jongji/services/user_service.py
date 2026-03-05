@@ -159,7 +159,7 @@ async def create_api_key(user_id: uuid.UUID, name: str, db: AsyncSession) -> tup
         (UserApiKey 모델, raw_key) 튜플. raw_key는 최초 1회만 노출됩니다.
     """
     raw_key = f"jk_{secrets.token_urlsafe(32)}"
-    key_hash = hash_password(raw_key)
+    key_hash = await hash_password(raw_key)
 
     api_key = UserApiKey(
         user_id=user_id,

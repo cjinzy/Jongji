@@ -6,10 +6,10 @@
 import uuid
 
 from jongji.services.auth_service import (
+    _hash_password_sync,
+    _verify_password_sync,
     create_access_token,
-    hash_password,
     verify_access_token,
-    verify_password,
 )
 
 
@@ -18,19 +18,19 @@ class TestPasswordHashing:
 
     def test_hash_password_returns_hash(self):
         """비밀번호 해싱 결과가 원본과 다른지 확인."""
-        hashed = hash_password("password123")
+        hashed = _hash_password_sync("password123")
         assert hashed != "password123"
         assert hashed.startswith("$2")  # bcrypt prefix
 
     def test_verify_password_correct(self):
         """올바른 비밀번호 검증 성공."""
-        hashed = hash_password("password123")
-        assert verify_password("password123", hashed) is True
+        hashed = _hash_password_sync("password123")
+        assert _verify_password_sync("password123", hashed) is True
 
     def test_verify_password_incorrect(self):
         """잘못된 비밀번호 검증 실패."""
-        hashed = hash_password("password123")
-        assert verify_password("wrongpassword", hashed) is False
+        hashed = _hash_password_sync("password123")
+        assert _verify_password_sync("wrongpassword", hashed) is False
 
 
 class TestJWT:

@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from jongji.api.deps import get_current_user
 from jongji.database import get_db
 from jongji.models.enums import TaskStatus
-from jongji.models.task import TaskRelation
+from jongji.models.task import TaskHistory, TaskRelation
 from jongji.models.user import User
 from jongji.schemas.common import CursorPage
 from jongji.schemas.task import (
@@ -231,8 +231,16 @@ async def delete_task(
         db: DB 세션.
 
     Raises:
-        HTTPException: 작업 미존재 시.
+        HTTPException: 작업 미존재 또는 권한 없음 시.
     """
+    task = await task_service.get_task(task_id, db)
+    if not task:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="작업을 찾을 수 없습니다.")
+
+    from jongji.services.task_service import _check_update_permission
+    if not await _check_update_permission(task, user, db):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="작업을 보관할 권한이 없습니다.")
+
     try:
         await task_service.archive_task(task_id, db)
         await db.commit()
@@ -326,6 +334,16 @@ async def update_task_status(
     try:
         old_status = task.status
         task.status = data.status
+        # 상태 변경 이력 기록
+        db.add(
+            TaskHistory(
+                task_id=task.id,
+                user_id=user.id,
+                field="status",
+                old_value=old_status.value if hasattr(old_status, "value") else str(old_status),
+                new_value=data.status.value if hasattr(data.status, "value") else str(data.status),
+            )
+        )
         await db.flush()
         await db.commit()
         full_task = await task_service.get_task(task.id, db)

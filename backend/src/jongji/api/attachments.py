@@ -5,7 +5,7 @@
 
 import traceback
 import uuid
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
@@ -30,6 +30,19 @@ ALLOWED_CONTENT_TYPES = {
     "application/json",
 }
 ALLOWED_PREFIXES = ("image/", "text/")
+
+
+def _sanitize_filename(filename: str) -> str:
+    """파일명에서 경로 탐색 문자를 제거합니다.
+
+    Args:
+        filename: 원본 파일명.
+
+    Returns:
+        안전한 파일명.
+    """
+    safe = PurePosixPath(filename).name.replace("\x00", "")
+    return safe if safe else "unnamed"
 
 
 def _is_allowed_content_type(content_type: str) -> bool:
@@ -114,7 +127,8 @@ async def upload_task_attachment(
 
     try:
         storage = get_storage()
-        rel_path = f"tasks/{task_id}/{uuid.uuid4().hex}_{file.filename}"
+        safe_name = _sanitize_filename(file.filename or "unnamed")
+        rel_path = f"tasks/{task_id}/{uuid.uuid4().hex}_{safe_name}"
         saved_path = await storage.save(file_bytes, rel_path)
 
         attachment = Attachment(
@@ -181,7 +195,8 @@ async def upload_temp_attachment(
 
     try:
         storage = get_storage()
-        rel_path = f"temp/{user.id}/{uuid.uuid4().hex}_{file.filename}"
+        safe_name = _sanitize_filename(file.filename or "unnamed")
+        rel_path = f"temp/{user.id}/{uuid.uuid4().hex}_{safe_name}"
         saved_path = await storage.save(file_bytes, rel_path)
 
         attachment = Attachment(

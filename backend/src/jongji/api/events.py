@@ -6,10 +6,12 @@ PostgreSQL LISTEN/NOTIFY 기반 EventBus를 통해 실시간 이벤트를 클라
 import traceback
 import uuid
 
-from fastapi import APIRouter, Header, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from loguru import logger
 
+from jongji.api.deps import get_current_user
+from jongji.models.user import User
 from jongji.services.event_bus import event_bus
 
 router = APIRouter(prefix="/api/v1/events", tags=["events"])
@@ -19,6 +21,7 @@ router = APIRouter(prefix="/api/v1/events", tags=["events"])
 async def stream_events(
     project_id: uuid.UUID = Query(..., description="구독할 프로젝트 UUID"),
     last_event_id: str | None = Header(None, alias="Last-Event-ID"),
+    user: User = Depends(get_current_user),
 ) -> StreamingResponse:
     """프로젝트 이벤트 SSE 스트림 엔드포인트.
 

@@ -3,6 +3,7 @@
 비밀번호 해싱, JWT 토큰 생성/검증, 회원가입/로그인 로직을 담당합니다.
 """
 
+import asyncio
 import hashlib
 import secrets
 import traceback
@@ -22,8 +23,8 @@ from jongji.schemas.user import UserCreate, UserLogin  # noqa: F401
 ALGORITHM = "HS256"
 
 
-def hash_password(password: str) -> str:
-    """비밀번호를 bcrypt로 해싱합니다.
+def _hash_password_sync(password: str) -> str:
+    """비밀번호를 bcrypt로 해싱합니다 (동기).
 
     Args:
         password: 평문 비밀번호.
@@ -35,8 +36,8 @@ def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
 
 
-def verify_password(plain: str, hashed: str) -> bool:
-    """평문 비밀번호와 해시를 비교합니다.
+def _verify_password_sync(plain: str, hashed: str) -> bool:
+    """평문 비밀번호와 해시를 비교합니다 (동기).
 
     Args:
         plain: 평문 비밀번호.
@@ -46,6 +47,31 @@ def verify_password(plain: str, hashed: str) -> bool:
         일치 여부.
     """
     return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
+
+
+async def hash_password(password: str) -> str:
+    """비밀번호를 bcrypt로 해싱합니다 (비동기, event loop 블로킹 방지).
+
+    Args:
+        password: 평문 비밀번호.
+
+    Returns:
+        해싱된 비밀번호 문자열.
+    """
+    return await asyncio.to_thread(_hash_password_sync, password)
+
+
+async def verify_password(plain: str, hashed: str) -> bool:
+    """평문 비밀번호와 해시를 비교합니다 (비동기, event loop 블로킹 방지).
+
+    Args:
+        plain: 평문 비밀번호.
+        hashed: 해싱된 비밀번호.
+
+    Returns:
+        일치 여부.
+    """
+    return await asyncio.to_thread(_verify_password_sync, plain, hashed)
 
 
 def create_access_token(user_id: uuid.UUID) -> str:
@@ -156,7 +182,7 @@ async def register(data: UserCreate, db: AsyncSession) -> User:
     user = User(
         email=data.email,
         name=data.name,
-        password_hash=hash_password(data.password),
+        password_hash=await hash_password(data.password),
     )
     db.add(user)
     await db.flush()
@@ -186,7 +212,7 @@ async def login(data: UserLogin, db: AsyncSession) -> User:
     # 계정 잠금 확인
     check_login_security(user)
 
-    if not verify_password(data.password, user.password_hash):
+    if not await verify_password(data.password, user.password_hash):
         await handle_login_failure(user, db)
         raise ValueError("Invalid credentials")
 

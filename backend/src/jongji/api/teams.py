@@ -94,6 +94,7 @@ async def create_team(
     """새 팀을 생성합니다. 생성자는 자동으로 리더로 등록됩니다."""
     try:
         team = await team_service.create_team(data.name, data.description, current_user.id, db)
+        await db.commit()
         members = await team_service.get_members(team.id, db)
         return _build_team_response(team, len(members))
     except Exception:
@@ -151,6 +152,7 @@ async def archive_team(
 
     try:
         await team_service.archive_team(team_id, db)
+        await db.commit()
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception:

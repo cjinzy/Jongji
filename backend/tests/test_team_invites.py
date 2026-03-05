@@ -14,7 +14,7 @@ from jongji.main import app
 from jongji.models.enums import TeamRole
 from jongji.models.team import Team, TeamInvite, TeamMember
 from jongji.models.user import User
-from jongji.services.auth_service import hash_password
+from jongji.services.auth_service import _hash_password_sync as hash_password
 
 # ---------------------------------------------------------------------------
 # 픽스처

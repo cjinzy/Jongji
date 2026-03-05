@@ -84,7 +84,7 @@ async def create_setup_admin(
         admin = User(
             email=data.email,
             name=data.name,
-            password_hash=hash_password(data.password),
+            password_hash=await hash_password(data.password),
             is_admin=True,
         )
         db.add(admin)

@@ -13,12 +13,15 @@ from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from jongji.api.deps import get_current_user
 from jongji.database import get_db
 from jongji.models.project import Project
 from jongji.models.task import Task, TaskHistory
 from jongji.models.user import User
 
 router = APIRouter(prefix="/api/v1", tags=["rss"])
+
+# NOTE: RSS 피드도 인증 필요 — 프로젝트 데이터 노출 방지
 
 
 def _build_rss_xml(project: Project, items: list[dict]) -> str:
@@ -53,11 +56,12 @@ def _build_rss_xml(project: Project, items: list[dict]) -> str:
 @router.get(
     "/projects/{project_id}/rss",
     summary="프로젝트 RSS 피드",
-    description="프로젝트의 작업 변경 이력을 RSS 2.0 형식으로 반환합니다. 인증 불필요.",
+    description="프로젝트의 작업 변경 이력을 RSS 2.0 형식으로 반환합니다.",
     response_class=Response,
 )
 async def get_project_rss(
     project_id: uuid.UUID,
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> Response:
     """프로젝트의 task_history를 RSS 2.0 피드로 반환합니다.
