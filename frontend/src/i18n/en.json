@@ -30,7 +30,10 @@
     "myIssues": "My Issues",
     "favorites": "Favorites",
     "projects": "Projects",
-    "noTeam": "No Team"
+    "noTeam": "No Team",
+    "home": "Home",
+    "team": "Team",
+    "admin": "Admin"
   },
   "task": {
     "create": "Create Task",
@@ -47,7 +50,24 @@
     "noDescription": "Click to add description...",
     "comments": "Comments",
     "writeComment": "Write a comment...",
-    "blocked": "Blocked by another task"
+    "blocked": "Blocked by another task",
+    "open": "Open",
+    "inProgress": "In Progress",
+    "done": "Done",
+    "cancelled": "Cancelled",
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High",
+    "urgent": "Urgent",
+    "noTitle": "Untitled",
+    "attachments": "Attachments",
+    "filter": "Filter",
+    "sortBy": "Sort by",
+    "groupBy": "Group by",
+    "viewAll": "View all",
+    "details": "Details",
+    "activity": "Activity",
+    "copyLink": "Copy link"
   },
   "kanban": {
     "title": "Kanban",
@@ -55,6 +75,27 @@
     "addTask": "Add task",
     "empty": "Empty",
     "refresh": "Refresh"
+  },
+  "table": {
+    "title": "Table",
+    "noTasks": "No tasks",
+    "columns": "Columns",
+    "rows": "Rows"
+  },
+  "gantt": {
+    "title": "Gantt Chart",
+    "today": "Today",
+    "week": "Week",
+    "month": "Month",
+    "zoom": "Zoom"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "totalTasks": "Total Tasks",
+    "completed": "Completed",
+    "inProgress": "In Progress",
+    "overdue": "Overdue",
+    "recentActivity": "Recent Activity"
   },
   "common": {
     "save": "Save",
@@ -71,7 +112,42 @@
     "optional": "Optional",
     "name": "Name",
     "description": "Description",
-    "key": "Key"
+    "key": "Key",
+    "confirm": "Confirm",
+    "close": "Close",
+    "add": "Add",
+    "remove": "Remove",
+    "update": "Update",
+    "submit": "Submit",
+    "reset": "Reset",
+    "filter": "Filter",
+    "sort": "Sort",
+    "view": "View",
+    "share": "Share",
+    "copy": "Copy",
+    "paste": "Paste",
+    "undo": "Undo",
+    "redo": "Redo",
+    "refresh": "Refresh",
+    "noData": "No data",
+    "error": "An error occurred",
+    "success": "Success",
+    "warning": "Warning",
+    "info": "Info"
+  },
+  "shortcuts": {
+    "title": "Keyboard Shortcuts",
+    "createTask": "Create task",
+    "search": "Search",
+    "commandPalette": "Command palette",
+    "navigateUp": "Navigate up",
+    "navigateDown": "Navigate down",
+    "closePanel": "Close panel",
+    "switchView": "Switch view",
+    "kanbanView": "Kanban view",
+    "tableView": "Table view",
+    "ganttView": "Gantt view",
+    "dashboardView": "Dashboard view"
   },
   "setup": {
     "title": "Setup Jongji",
@@ -156,6 +232,8 @@
     "newPassword": "New password",
     "changePassword": "Change password",
     "saved": "Saved",
+    "languageSelect": "Select language",
+    "languageHint": "Applied across the entire app",
     "dnd": {
       "title": "Do Not Disturb",
       "description": "Silence all notifications during the specified time window.",
