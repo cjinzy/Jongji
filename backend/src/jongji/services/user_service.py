@@ -91,9 +91,11 @@ async def search_users(query: str, db: AsyncSession, limit: int = 20) -> list[Us
     Returns:
         검색 결과 User 목록.
     """
+    # LIKE 와일드카드 문자 이스케이프
+    escaped = query.replace("%", r"\%").replace("_", r"\_")
     stmt = (
         select(User)
-        .where(User.is_active.is_(True), (User.name.ilike(f"%{query}%")) | (User.email.ilike(f"%{query}%")))
+        .where(User.is_active.is_(True), (User.name.ilike(f"%{escaped}%")) | (User.email.ilike(f"%{escaped}%")))
         .limit(limit)
     )
     result = await db.execute(stmt)

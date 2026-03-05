@@ -42,7 +42,7 @@ class TestRegister:
             "/api/v1/auth/register",
             json={
                 "email": "test@example.com",
-                "password": "password123",
+                "password": "Password1",
                 "name": "Test User",
             },
         )
@@ -69,7 +69,7 @@ class TestRegister:
             "/api/v1/auth/register",
             json={
                 "email": "not-an-email",
-                "password": "password123",
+                "password": "Password1",
                 "name": "Test",
             },
         )
@@ -79,7 +79,7 @@ class TestRegister:
         """중복 이메일로 가입 시 409 반환."""
         payload = {
             "email": "dup@example.com",
-            "password": "password123",
+            "password": "Password1",
             "name": "Test",
         }
         resp1 = await client.post("/api/v1/auth/register", json=payload)
@@ -93,7 +93,7 @@ class TestRegister:
             "/api/v1/auth/register",
             json={
                 "email": "test@example.com",
-                "password": "password123",
+                "password": "Password1",
                 "name": "",
             },
         )
@@ -109,7 +109,7 @@ class TestLogin:
             "/api/v1/auth/register",
             json={
                 "email": "login@example.com",
-                "password": "password123",
+                "password": "Password1",
                 "name": "Login User",
             },
         )
@@ -117,7 +117,7 @@ class TestLogin:
             "/api/v1/auth/login",
             json={
                 "email": "login@example.com",
-                "password": "password123",
+                "password": "Password1",
             },
         )
         assert resp.status_code == 200
@@ -130,7 +130,7 @@ class TestLogin:
             "/api/v1/auth/register",
             json={
                 "email": "wrong@example.com",
-                "password": "password123",
+                "password": "Password1",
                 "name": "Wrong",
             },
         )
@@ -149,7 +149,7 @@ class TestLogin:
             "/api/v1/auth/login",
             json={
                 "email": "nope@example.com",
-                "password": "password123",
+                "password": "Password1",
             },
         )
         assert resp.status_code == 401
@@ -160,7 +160,7 @@ class TestLogin:
             "/api/v1/auth/register",
             json={
                 "email": "failcount@example.com",
-                "password": "password123",
+                "password": "Password1",
                 "name": "FailCount",
             },
         )
@@ -178,7 +178,7 @@ class TestLogin:
             "/api/v1/auth/login",
             json={
                 "email": "failcount@example.com",
-                "password": "password123",
+                "password": "Password1",
             },
         )
         assert resp.status_code == 200
@@ -193,7 +193,7 @@ class TestRefresh:
             "/api/v1/auth/register",
             json={
                 "email": "refresh@example.com",
-                "password": "password123",
+                "password": "Password1",
                 "name": "Refresh",
             },
         )
@@ -201,7 +201,7 @@ class TestRefresh:
             "/api/v1/auth/login",
             json={
                 "email": "refresh@example.com",
-                "password": "password123",
+                "password": "Password1",
             },
         )
         assert login_resp.status_code == 200
@@ -233,7 +233,7 @@ class TestLogout:
             "/api/v1/auth/register",
             json={
                 "email": "logout@example.com",
-                "password": "password123",
+                "password": "Password1",
                 "name": "Logout",
             },
         )
@@ -241,7 +241,7 @@ class TestLogout:
             "/api/v1/auth/login",
             json={
                 "email": "logout@example.com",
-                "password": "password123",
+                "password": "Password1",
             },
         )
         access_token = login_resp.json()["access_token"]

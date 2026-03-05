@@ -44,11 +44,11 @@ async def _register_and_login(client, email: str, name: str = "Test") -> tuple[s
     """
     await client.post(
         "/api/v1/auth/register",
-        json={"email": email, "password": "password123", "name": name},
+        json={"email": email, "password": "Password1", "name": name},
     )
     resp = await client.post(
         "/api/v1/auth/login",
-        json={"email": email, "password": "password123"},
+        json={"email": email, "password": "Password1"},
     )
     access_token = resp.json()["access_token"]
     refresh_token = resp.cookies.get("refresh_token", "")
