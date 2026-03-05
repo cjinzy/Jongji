@@ -25,3 +25,42 @@
 # Existing docs
 todo.md
 todo-jongji.md
+
+# Backend
+backend/.venv/
+backend/src/*.egg-info/
+__pycache__/
+*.pyc
+.env
+uploads/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Docker
+postgres_data/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Docker volumes
+postgres_dev_data/
+
+# Backups
+backups/
+
+# Env (allow example)
+!.env.example
+*.egg-info/
+.pytest_cache/
+
+# OS
+Thumbs.db
+
+
+**/docs/*
+todo-jongji.md
+todo.md
