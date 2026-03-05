@@ -57,7 +57,7 @@ async def leader_user(db_session):
         id=uuid.uuid4(),
         email=f"leader_{uuid.uuid4().hex[:8]}@example.com",
         name="Leader User",
-        password_hash=hash_password("password123"),
+        password_hash=hash_password("Password123"),
         is_active=True,
     )
     db_session.add(user)
@@ -79,7 +79,7 @@ async def member_user(db_session):
         id=uuid.uuid4(),
         email=f"member_{uuid.uuid4().hex[:8]}@example.com",
         name="Member User",
-        password_hash=hash_password("password123"),
+        password_hash=hash_password("Password123"),
         is_active=True,
     )
     db_session.add(user)
@@ -101,7 +101,7 @@ async def other_user(db_session):
         id=uuid.uuid4(),
         email=f"other_{uuid.uuid4().hex[:8]}@example.com",
         name="Other User",
-        password_hash=hash_password("password123"),
+        password_hash=hash_password("Password123"),
         is_active=True,
     )
     db_session.add(user)
@@ -152,7 +152,7 @@ async def _get_token(client: AsyncClient, email: str) -> str:
     """
     resp = await client.post(
         "/api/v1/auth/login",
-        json={"email": email, "password": "password123"},
+        json={"email": email, "password": "Password123"},
     )
     assert resp.status_code == 200, f"로그인 실패: {resp.text}"
     return resp.json()["access_token"]

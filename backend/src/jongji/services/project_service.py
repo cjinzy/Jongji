@@ -229,7 +229,10 @@ async def add_member(
         if existing.scalar_one_or_none():
             raise ValueError("이미 프로젝트 멤버입니다.")
 
-        role = ProjectRole(data.role) if data.role in ProjectRole._value2member_map_ else ProjectRole.MEMBER
+        try:
+            role = ProjectRole(data.role)
+        except ValueError:
+            role = ProjectRole.MEMBER
         pm = ProjectMember(
             project_id=project_id,
             user_id=data.user_id,

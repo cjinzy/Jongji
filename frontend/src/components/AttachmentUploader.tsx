@@ -194,6 +194,7 @@ export default function AttachmentUploader({
           ref={inputRef}
           type="file"
           multiple
+          accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip,.md"
           className="sr-only"
           aria-hidden="true"
           tabIndex={-1}

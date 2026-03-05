@@ -8,7 +8,8 @@ const apiClient = axios.create({
 
 /** Read a cookie value by name. */
 function getCookie(name: string): string | undefined {
-  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`))
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const match = document.cookie.match(new RegExp(`(?:^|; )${escaped}=([^;]*)`))
   return match ? decodeURIComponent(match[1]) : undefined
 }
 

@@ -75,13 +75,23 @@ class SetupAdminCreate(BaseModel):
 
     Attributes:
         email: 관리자 이메일.
-        password: 관리자 비밀번호 (최소 8자).
+        password: 관리자 비밀번호 (최소 8자, 대문자/숫자 포함).
         name: 관리자 이름.
     """
 
     email: EmailStr
-    password: str = Field(min_length=8)
+    password: str = Field(min_length=8, max_length=128)
     name: str = Field(min_length=1)
+
+    @field_validator("password")
+    @classmethod
+    def validate_password_complexity(cls, v: str) -> str:
+        """비밀번호 복잡성 검증: 대문자 + 숫자 포함."""
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("비밀번호에 대문자가 최소 1자 포함되어야 합니다.")
+        if not re.search(r"[0-9]", v):
+            raise ValueError("비밀번호에 숫자가 최소 1자 포함되어야 합니다.")
+        return v
 
 
 class SystemSettingsUpdate(BaseModel):

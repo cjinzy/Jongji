@@ -44,6 +44,7 @@ async def register_user(
     """
     try:
         user = await register(data, db)
+        await db.commit()
     except ValueError as e:
         logger.warning(f"Registration failed: {e}")
         raise HTTPException(
@@ -121,6 +122,7 @@ async def login_user(
         samesite="lax",
     )
 
+    await db.commit()
     return TokenResponse(access_token=access_token)
 
 
@@ -195,6 +197,7 @@ async def logout(
 
             token_record.revoked_at = datetime.now(UTC)
             await db.flush()
+            await db.commit()
 
     response.delete_cookie("refresh_token", path="/api/v1/auth/refresh")
     response.delete_cookie("csrf_token")

@@ -3,7 +3,6 @@
 pydantic-settings를 사용하여 환경 변수 및 .env 파일에서 설정을 로드합니다.
 """
 
-import secrets
 import warnings
 
 from pydantic_settings import BaseSettings
@@ -21,7 +20,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://jongji:jongji@localhost:5432/jongji"
 
     # Auth
-    SECRET_KEY: str = secrets.token_hex(32)
+    SECRET_KEY: str = _INSECURE_DEFAULT_KEY
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 

@@ -311,21 +311,25 @@ async def list_tasks(
         query = query.where(Task.priority == priority)
 
     if cursor:
-        parts = cursor.split("|")
-        if len(parts) == 2:
-            from datetime import datetime
+        try:
+            parts = cursor.split("|")
+            if len(parts) == 2:
+                from datetime import datetime
 
-            cursor_ts = datetime.fromisoformat(parts[0])
-            cursor_id = uuid.UUID(parts[1])
-            query = query.where(
-                (Task.created_at < cursor_ts)
-                | (
-                    and_(
-                        Task.created_at == cursor_ts,
-                        Task.id < cursor_id,
+                cursor_ts = datetime.fromisoformat(parts[0])
+                cursor_id = uuid.UUID(parts[1])
+                query = query.where(
+                    (Task.created_at < cursor_ts)
+                    | (
+                        and_(
+                            Task.created_at == cursor_ts,
+                            Task.id < cursor_id,
+                        )
                     )
                 )
-            )
+        except ValueError:
+            # 잘못된 cursor 형식이면 무시하고 처음부터 조회
+            pass
 
     query = query.limit(limit + 1)
     result = await db.execute(query)

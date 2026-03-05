@@ -210,6 +210,15 @@ export default function RichEditor({
     [uploadImageFile],
   )
 
+  function isValidUrl(url: string): boolean {
+    try {
+      const parsed = new URL(url)
+      return ['http:', 'https:', 'mailto:'].includes(parsed.protocol)
+    } catch {
+      return false
+    }
+  }
+
   function setLink() {
     if (!editor) return
     const prev = editor.getAttributes('link').href ?? ''
@@ -218,6 +227,7 @@ export default function RichEditor({
     if (url === '') {
       editor.chain().focus().extendMarkRange('link').unsetLink().run()
     } else {
+      if (!isValidUrl(url)) return
       editor
         .chain()
         .focus()

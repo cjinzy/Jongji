@@ -36,7 +36,7 @@ export const useAuthStore = create<AuthStore>()(
     }),
     {
       name: 'jongji-auth',
-      partialize: (state) => ({ token: state.token, user: state.user }),
+      partialize: (state) => ({ user: state.user }),
     }
   )
 )

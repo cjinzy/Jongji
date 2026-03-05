@@ -93,6 +93,7 @@ async def create_setup_admin(
         logger.error(f"Failed to create admin: {traceback.format_exc()}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    await db.commit()
     return UserResponse.model_validate(admin)
 
 
@@ -129,6 +130,7 @@ async def save_setup_settings(
         if value is not None:
             await _upsert_setting(db, key, value)
 
+    await db.commit()
     return {"detail": "Settings saved"}
 
 
@@ -162,6 +164,7 @@ async def complete_setup(db: AsyncSession = Depends(get_db)):
         )
 
     await _upsert_setting(db, "setup_completed", "true")
+    await db.commit()
     return {"detail": "Setup completed"}
 
 

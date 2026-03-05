@@ -60,7 +60,7 @@ class TestSetupAdmin:
             "/api/v1/setup/admin",
             json={
                 "email": "admin@example.com",
-                "password": "adminpass123",
+                "password": "AdminPass123",
                 "name": "Admin",
             },
         )
@@ -75,7 +75,7 @@ class TestSetupAdmin:
             "/api/v1/setup/admin",
             json={
                 "email": "admin1@example.com",
-                "password": "adminpass123",
+                "password": "AdminPass123",
                 "name": "Admin1",
             },
         )
@@ -83,7 +83,7 @@ class TestSetupAdmin:
             "/api/v1/setup/admin",
             json={
                 "email": "admin2@example.com",
-                "password": "adminpass123",
+                "password": "AdminPass123",
                 "name": "Admin2",
             },
         )
@@ -124,7 +124,7 @@ class TestSetupSettings:
             "/api/v1/setup/admin",
             json={
                 "email": "admin@example.com",
-                "password": "adminpass123",
+                "password": "AdminPass123",
                 "name": "Admin",
             },
         )
@@ -146,7 +146,7 @@ class TestSetupComplete:
             "/api/v1/setup/admin",
             json={
                 "email": "admin@example.com",
-                "password": "adminpass123",
+                "password": "AdminPass123",
                 "name": "Admin",
             },
         )
@@ -175,7 +175,7 @@ class TestSetupComplete:
             "/api/v1/setup/admin",
             json={
                 "email": "admin@example.com",
-                "password": "adminpass123",
+                "password": "AdminPass123",
                 "name": "Admin",
             },
         )

@@ -49,27 +49,19 @@ const STATUS_LABELS: Record<string, string> = {
 }
 
 const PRIORITY_LABELS: Record<number, string> = {
-  1: 'P1 — Critical',
-  2: 'P2 — High',
-  3: 'P3 — Medium',
-  4: 'P4 — Low',
-  5: 'P5',
-  6: 'P6',
-  7: 'P7',
-  8: 'P8',
-  9: 'P9 — None',
+  0: 'None',
+  1: 'Low',
+  2: 'Medium',
+  3: 'High',
+  4: 'Urgent',
 }
 
 const PRIORITY_COLORS: Record<number, string> = {
-  1: '#EF4444',
-  2: '#F97316',
-  3: '#F59E0B',
-  4: '#5B6AF0',
-  5: '#8B5CF6',
-  6: '#6B7280',
-  7: '#6B7280',
-  8: '#6B7280',
-  9: '#374151',
+  0: '#6B7280',
+  1: '#5B6AF0',
+  2: '#F59E0B',
+  3: '#F97316',
+  4: '#EF4444',
 }
 
 const CHART_COLORS = [

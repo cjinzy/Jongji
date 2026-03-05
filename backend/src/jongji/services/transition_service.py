@@ -102,7 +102,7 @@ async def detect_cycle(
         parents = list(result.scalars().all())
         stack.extend(parents)
 
-    return False
+    return len(visited) >= MAX_CHAIN_DEPTH
 
 
 async def count_blocked_by(task_id: uuid.UUID, db: AsyncSession) -> int:
