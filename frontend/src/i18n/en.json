@@ -1,0 +1,7 @@
+{
+  "app": { "name": "Jongji" },
+  "auth": { "login": "Login", "register": "Register", "logout": "Logout", "email": "Email", "password": "Password", "googleLogin": "Login with Google" },
+  "nav": { "kanban": "Kanban", "table": "Table", "gantt": "Gantt", "dashboard": "Dashboard", "settings": "Settings" },
+  "task": { "create": "Create Task", "title": "Title", "description": "Description", "status": "Status", "priority": "Priority", "assignee": "Assignee" },
+  "common": { "save": "Save", "cancel": "Cancel", "delete": "Delete", "edit": "Edit", "search": "Search", "loading": "Loading..." }
+}
