@@ -19,6 +19,7 @@ import { listTasksApi, updateTaskStatusApi, updateTaskApi } from '../api/tasks'
 import { teamsApi } from '../api/teams'
 import type { Task, TaskStatus, TaskPriority } from '../types/task'
 import { TASK_STATUSES, PRIORITY_LABELS } from '../types/task'
+import { formatDate } from '../utils/date'
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 
@@ -75,15 +76,6 @@ function sortTasks(tasks: Task[], key: SortKey, dir: SortDir): Task[] {
       cmp = a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0
     }
     return dir === 'asc' ? cmp : -cmp
-  })
-}
-
-function formatDate(iso: string | null): string {
-  if (!iso) return '—'
-  return new Date(iso).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: '2-digit',
   })
 }
 

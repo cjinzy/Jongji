@@ -309,7 +309,7 @@ async def update_task_status(
     # 전환 유효성 검사
     if not validate_transition(task.status, data.status):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"{task.status} -> {data.status} 전환은 허용되지 않습니다.",
         )
 
@@ -319,7 +319,7 @@ async def update_task_status(
         if unfinished:
             ids = [str(t.id) for t in unfinished]
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=f"blocked_by 작업이 완료되지 않았습니다: {ids}",
             )
 
@@ -370,7 +370,7 @@ async def add_task_relation(
     # 자기 참조 검사
     if task_id == data.blocked_by_task_id:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="자기 자신을 blocked_by로 설정할 수 없습니다.",
         )
 
@@ -385,7 +385,7 @@ async def add_task_relation(
     current_count = await count_blocked_by(task_id, db)
     if current_count >= MAX_BLOCKED_BY:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"blocked_by는 최대 {MAX_BLOCKED_BY}개까지 설정할 수 있습니다.",
         )
 
@@ -393,7 +393,7 @@ async def add_task_relation(
     has_cycle = await detect_cycle(task_id, data.blocked_by_task_id, db)
     if has_cycle:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="순환 의존성이 감지되었습니다.",
         )
 

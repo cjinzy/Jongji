@@ -14,6 +14,7 @@ import {
 import { getTaskApi } from '../api/tasks'
 import type { TaskStatus, TaskPriority } from '../types/task'
 import { PRIORITY_LABELS } from '../types/task'
+import { formatDate } from '../utils/date'
 
 const STATUS_META: Record<
   TaskStatus,
@@ -34,15 +35,6 @@ const PRIORITY_COLOR: Record<TaskPriority, string> = {
   2: '#F59E0B',
   3: '#EF4444',
   4: '#EF4444',
-}
-
-function formatDate(iso: string | null): string {
-  if (!iso) return '—'
-  return new Date(iso).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })
 }
 
 /**

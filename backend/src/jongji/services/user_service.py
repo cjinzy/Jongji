@@ -8,7 +8,6 @@ import traceback
 import uuid
 from datetime import UTC
 
-import bcrypt
 from loguru import logger
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,31 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from jongji.models.system import SystemSetting
 from jongji.models.user import RefreshToken, User, UserApiKey
 from jongji.schemas.user import UserUpdate
-
-
-def hash_password(password: str) -> str:
-    """비밀번호를 bcrypt로 해싱합니다.
-
-    Args:
-        password: 평문 비밀번호.
-
-    Returns:
-        bcrypt 해시 문자열.
-    """
-    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-
-
-def verify_password(password: str, hashed: str) -> bool:
-    """비밀번호가 해시와 일치하는지 검증합니다.
-
-    Args:
-        password: 평문 비밀번호.
-        hashed: bcrypt 해시 문자열.
-
-    Returns:
-        일치 여부.
-    """
-    return bcrypt.checkpw(password.encode(), hashed.encode())
+from jongji.services.auth_service import hash_password, verify_password  # noqa: F401
 
 
 async def get_user_by_id(user_id: uuid.UUID, db: AsyncSession) -> User | None:
