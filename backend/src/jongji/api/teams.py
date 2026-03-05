@@ -47,20 +47,16 @@ def _build_team_response(team, member_count: int) -> TeamResponse:
     )
 
 
-async def _build_member_response(membership: TeamMember, db: AsyncSession) -> TeamMemberResponse:
-    """TeamMember 모델로 TeamMemberResponse를 조립합니다.
-
-    User 정보를 DB에서 조회하여 응답에 포함합니다.
+def _build_member_response(membership: TeamMember, user: User | None) -> TeamMemberResponse:
+    """TeamMember 모델과 User 정보로 TeamMemberResponse를 조립합니다.
 
     Args:
         membership: TeamMember ORM 모델.
-        db: 비동기 DB 세션.
+        user: User ORM 모델 (또는 None).
 
     Returns:
         TeamMemberResponse 스키마.
     """
-    user_result = await db.execute(select(User).where(User.id == membership.user_id))
-    user = user_result.scalar_one_or_none()
     return TeamMemberResponse(
         id=membership.id,
         user_id=membership.user_id,
@@ -77,12 +73,8 @@ async def list_teams(
     db: AsyncSession = Depends(get_db),
 ):
     """현재 사용자가 속한 팀 목록을 반환합니다."""
-    teams = await team_service.list_user_teams(current_user.id, db)
-    result = []
-    for team in teams:
-        members = await team_service.get_members(team.id, db)
-        result.append(_build_team_response(team, len(members)))
-    return result
+    teams_with_counts = await team_service.list_user_teams_with_counts(current_user.id, db)
+    return [_build_team_response(team, count) for team, count in teams_with_counts]
 
 
 @router.post("", response_model=TeamResponse, status_code=status.HTTP_201_CREATED)
@@ -171,8 +163,13 @@ async def list_members(
     if not team:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="팀을 찾을 수 없습니다.")
 
-    members = await team_service.get_members(team_id, db)
-    return [await _build_member_response(m, db) for m in members]
+    stmt = (
+        select(TeamMember, User)
+        .join(User, User.id == TeamMember.user_id)
+        .where(TeamMember.team_id == team_id)
+    )
+    result = await db.execute(stmt)
+    return [_build_member_response(m, u) for m, u in result.all()]
 
 
 @router.post("/{team_id}/members", response_model=TeamMemberResponse, status_code=status.HTTP_201_CREATED)
@@ -189,7 +186,9 @@ async def add_member(
 
     try:
         membership = await team_service.add_member(team_id, data.user_id, data.role, db)
-        return await _build_member_response(membership, db)
+        user_result = await db.execute(select(User).where(User.id == data.user_id))
+        user = user_result.scalar_one_or_none()
+        return _build_member_response(membership, user)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception:

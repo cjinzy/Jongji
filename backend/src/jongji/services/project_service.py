@@ -127,21 +127,29 @@ async def archive_project(project_id: uuid.UUID, db: AsyncSession) -> None:
     await db.flush()
 
 
-async def list_projects(team_id: uuid.UUID, db: AsyncSession) -> list[Project]:
+async def list_projects(
+    team_id: uuid.UUID, db: AsyncSession, *, limit: int = 50, offset: int = 0
+) -> list[Project]:
     """팀의 활성(비아카이브) 프로젝트 목록을 반환합니다.
 
     Args:
         team_id: 팀 UUID.
         db: 비동기 DB 세션.
+        limit: 최대 반환 개수.
+        offset: 건너뛸 개수.
 
     Returns:
         활성 Project 목록.
     """
     result = await db.execute(
-        select(Project).where(
+        select(Project)
+        .where(
             Project.team_id == team_id,
             Project.is_archived.is_(False),
         )
+        .order_by(Project.created_at.desc())
+        .limit(limit)
+        .offset(offset)
     )
     return list(result.scalars().all())
 

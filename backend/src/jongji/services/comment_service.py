@@ -105,12 +105,16 @@ async def create_comment(
         raise
 
 
-async def list_comments(task_id: uuid.UUID, db: AsyncSession) -> list[TaskComment]:
+async def list_comments(
+    task_id: uuid.UUID, db: AsyncSession, *, limit: int = 100, offset: int = 0
+) -> list[TaskComment]:
     """작업의 댓글 목록을 생성 시각 오름차순으로 반환합니다.
 
     Args:
         task_id: 작업 UUID.
         db: 비동기 DB 세션.
+        limit: 최대 반환 개수.
+        offset: 건너뛸 개수.
 
     Returns:
         TaskComment 목록.
@@ -119,6 +123,8 @@ async def list_comments(task_id: uuid.UUID, db: AsyncSession) -> list[TaskCommen
         select(TaskComment)
         .where(TaskComment.task_id == task_id)
         .order_by(TaskComment.created_at.asc())
+        .limit(limit)
+        .offset(offset)
     )
     return list(result.scalars().all())
 

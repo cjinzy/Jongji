@@ -6,7 +6,7 @@
 import traceback
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,11 +27,13 @@ router = APIRouter(prefix="/api/v1/projects", tags=["projects"])
 @router.get("", response_model=list[ProjectResponse])
 async def list_projects(
     team_id: UUID,
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """팀에 속한 활성 프로젝트 목록을 반환합니다."""
-    projects = await project_service.list_projects(team_id, db)
+    projects = await project_service.list_projects(team_id, db, limit=limit, offset=offset)
     return [ProjectResponse.model_validate(p) for p in projects]
 
 

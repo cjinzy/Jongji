@@ -7,7 +7,7 @@ import traceback
 import uuid
 
 from loguru import logger
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from jongji.models.enums import TeamRole
@@ -124,18 +124,29 @@ async def archive_team(team_id: uuid.UUID, db: AsyncSession) -> None:
         raise
 
 
-async def list_user_teams(user_id: uuid.UUID, db: AsyncSession) -> list[Team]:
-    """사용자가 속한 활성 팀 목록을 반환합니다.
+async def list_user_teams_with_counts(
+    user_id: uuid.UUID, db: AsyncSession
+) -> list[tuple[Team, int]]:
+    """사용자가 속한 활성 팀 목록을 멤버 수와 함께 반환합니다.
+
+    N+1 쿼리를 방지하기 위해 멤버 수를 서브쿼리로 함께 조회합니다.
 
     Args:
         user_id: 사용자 UUID.
         db: 비동기 DB 세션.
 
     Returns:
-        Team 목록 (아카이브된 팀 제외).
+        (Team, member_count) 튜플 목록 (아카이브된 팀 제외).
     """
+    member_count_sq = (
+        select(func.count(TeamMember.id))
+        .where(TeamMember.team_id == Team.id)
+        .correlate(Team)
+        .scalar_subquery()
+        .label("member_count")
+    )
     stmt = (
-        select(Team)
+        select(Team, member_count_sq)
         .join(TeamMember, TeamMember.team_id == Team.id)
         .where(
             TeamMember.user_id == user_id,
@@ -143,7 +154,7 @@ async def list_user_teams(user_id: uuid.UUID, db: AsyncSession) -> list[Team]:
         )
     )
     result = await db.execute(stmt)
-    return list(result.scalars().all())
+    return [(row[0], row[1]) for row in result.all()]
 
 
 async def add_member(

@@ -6,7 +6,7 @@
 import traceback
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,6 +23,8 @@ router = APIRouter(tags=["comments"])
 @router.get("/api/v1/tasks/{task_id}/comments", response_model=list[CommentResponse])
 async def list_comments(
     task_id: UUID,
+    limit: int = Query(100, ge=1, le=200),
+    offset: int = Query(0, ge=0),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -32,7 +34,7 @@ async def list_comments(
     if not task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="작업을 찾을 수 없습니다.")
 
-    return await comment_service.list_comments(task_id, db)
+    return await comment_service.list_comments(task_id, db, limit=limit, offset=offset)
 
 
 @router.post(
