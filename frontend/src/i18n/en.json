@@ -145,5 +145,40 @@
     "createTeam": "Create Team",
     "noProjects": "No projects",
     "addProject": "Add Project"
+  },
+  "settings": {
+    "profile": "Profile",
+    "security": "Security",
+    "language": "Language",
+    "notifications": "Notification Settings",
+    "displayName": "Display name",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "changePassword": "Change password",
+    "saved": "Saved",
+    "dnd": {
+      "title": "Do Not Disturb",
+      "description": "Silence all notifications during the specified time window.",
+      "enable": "Enable Do Not Disturb",
+      "startTime": "Start time",
+      "endTime": "End time",
+      "timelineLabel": "24h timeline",
+      "activeStatus": "Do Not Disturb is on",
+      "inactiveStatus": "Do Not Disturb is off",
+      "activeHint": "until",
+      "save": "Save"
+    }
+  },
+  "search": {
+    "commandPalette": "Command Palette",
+    "placeholder": "Search...",
+    "results": "Search results",
+    "recent": "Recent",
+    "emptyHint": "Type to search tasks and comments",
+    "noResults": "No results for \"{{query}}\"",
+    "groupTasks": "Tasks",
+    "groupComments": "Comments",
+    "hintNavigate": "navigate",
+    "hintOpen": "open"
   }
 }

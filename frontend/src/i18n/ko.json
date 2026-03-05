@@ -145,5 +145,40 @@
     "createTeam": "팀 만들기",
     "noProjects": "프로젝트 없음",
     "addProject": "프로젝트 추가"
+  },
+  "settings": {
+    "profile": "프로필",
+    "security": "보안",
+    "language": "언어",
+    "notifications": "알림 설정",
+    "displayName": "표시 이름",
+    "currentPassword": "현재 비밀번호",
+    "newPassword": "새 비밀번호",
+    "changePassword": "비밀번호 변경",
+    "saved": "저장됨",
+    "dnd": {
+      "title": "방해 금지",
+      "description": "지정한 시간 동안 알림을 받지 않습니다.",
+      "enable": "방해 금지 활성화",
+      "startTime": "시작 시간",
+      "endTime": "종료 시간",
+      "timelineLabel": "24시간 타임라인",
+      "activeStatus": "방해 금지 활성화됨",
+      "inactiveStatus": "방해 금지 꺼짐",
+      "activeHint": "까지 알림 없음",
+      "save": "저장"
+    }
+  },
+  "search": {
+    "commandPalette": "명령 팔레트",
+    "placeholder": "검색...",
+    "results": "검색 결과",
+    "recent": "최근 검색",
+    "emptyHint": "검색어를 입력하세요",
+    "noResults": "\"{{query}}\" 에 대한 결과 없음",
+    "groupTasks": "업무",
+    "groupComments": "댓글",
+    "hintNavigate": "이동",
+    "hintOpen": "열기"
   }
 }
