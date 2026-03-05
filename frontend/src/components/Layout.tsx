@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useState } from 'react'
 import { Outlet } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import {
@@ -7,10 +8,29 @@ import {
 } from '@fluentui/react-icons'
 import { useUIStore } from '../stores'
 import { Sidebar } from './Sidebar'
+import { CommandPalette } from './CommandPalette'
 
 export default function Layout() {
   const { t } = useTranslation()
   const { sidebarOpen, toggleSidebar } = useUIStore()
+  const [paletteOpen, setPaletteOpen] = useState(false)
+
+  const openPalette = useCallback(() => setPaletteOpen(true), [])
+  const closePalette = useCallback(() => setPaletteOpen(false), [])
+
+  // Global Cmd+K / Ctrl+K shortcut
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      const isMac = navigator.platform.toUpperCase().includes('MAC')
+      const modifier = isMac ? e.metaKey : e.ctrlKey
+      if (modifier && e.key === 'k') {
+        e.preventDefault()
+        setPaletteOpen((prev) => !prev)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-bg-primary">
@@ -39,12 +59,20 @@ export default function Layout() {
           {/* Breadcrumb placeholder */}
           <div className="flex-1" />
 
-          {/* Actions */}
+          {/* Search trigger */}
           <button
+            onClick={openPalette}
             aria-label={t('common.search')}
-            className="p-1.5 rounded hover:bg-bg-hover text-text-tertiary hover:text-text-secondary transition-colors duration-150"
+            aria-keyshortcuts="Meta+K Control+K"
+            className="flex items-center gap-2 px-2.5 py-1 rounded-md border border-border bg-bg-tertiary hover:border-border/80 hover:bg-bg-hover text-text-tertiary hover:text-text-secondary transition-colors duration-150 group"
           >
-            <SearchRegular className="w-4 h-4" />
+            <SearchRegular className="w-3.5 h-3.5" />
+            <span className="hidden md:inline text-xs">{t('common.search')}</span>
+            <kbd className="hidden md:flex items-center gap-0.5 ml-1">
+              <span className="text-[10px] font-mono text-text-tertiary/60 border border-border/60 rounded px-1 py-0.5 bg-bg-primary leading-none">
+                ⌘K
+              </span>
+            </kbd>
           </button>
 
           <button
@@ -61,6 +89,9 @@ export default function Layout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Command palette portal */}
+      <CommandPalette open={paletteOpen} onClose={closePalette} />
     </div>
   )
 }
