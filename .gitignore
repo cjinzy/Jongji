@@ -1,0 +1,27 @@
+# Python
+**/__pycache__/
+**/.venv/
+*.pyc
+**/.ruff_cache/
+
+# Node
+**/node_modules/
+**/dist/
+
+# IDE
+**/.vscode/
+**/.idea/
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+
+# OMC
+**/.omc/
+
+# Existing docs
+todo.md
+todo-jongji.md
