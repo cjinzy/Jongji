@@ -3,6 +3,7 @@
 회원가입, 로그인, 토큰 갱신, 로그아웃 엔드포인트를 제공합니다.
 """
 
+import hmac
 import secrets
 import traceback
 from datetime import UTC
@@ -127,17 +128,19 @@ async def login_user(
 async def refresh_token(
     response: Response,
     refresh_token: str | None = Cookie(default=None),
+    csrf_token: str | None = Cookie(default=None),
     x_csrf_token: str | None = Header(default=None),
     db: AsyncSession = Depends(get_db),
 ):
     """리프레시 토큰으로 새 액세스 토큰을 발급합니다.
 
-    HttpOnly 쿠키의 refresh_token과 CSRF 토큰을 검증합니다.
+    HttpOnly 쿠키의 refresh_token과 CSRF Double Submit Cookie를 검증합니다.
 
     Args:
         response: HTTP 응답 객체.
         refresh_token: 리프레시 토큰 (쿠키).
-        x_csrf_token: CSRF 토큰 (헤더).
+        csrf_token: CSRF 토큰 (쿠키에서 자동 전송).
+        x_csrf_token: CSRF 토큰 (요청 헤더).
         db: 비동기 DB 세션.
 
     Returns:
@@ -147,6 +150,13 @@ async def refresh_token(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token required",
+        )
+
+    # CSRF Double Submit Cookie 검증: 쿠키 값과 헤더 값이 일치해야 함
+    if not x_csrf_token or not csrf_token or not hmac.compare_digest(csrf_token, x_csrf_token):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="CSRF token mismatch",
         )
 
     token_record = await verify_refresh_token(refresh_token, db)
