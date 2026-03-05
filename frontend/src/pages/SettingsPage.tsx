@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation } from '@tanstack/react-query'
 import {
@@ -572,7 +572,7 @@ function NotificationsSection() {
   const [loadError, setLoadError] = useState(false)
 
   // Load current DND settings on mount
-  useState(() => {
+  useEffect(() => {
     fetchDndProfile()
       .then((profile) => {
         if (profile.dnd_start && profile.dnd_end) {
@@ -582,7 +582,7 @@ function NotificationsSection() {
         }
       })
       .catch(() => setLoadError(true))
-  })
+  }, [])
 
   const mutation = useMutation({
     mutationFn: () =>

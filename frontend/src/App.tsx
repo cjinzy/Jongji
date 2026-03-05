@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { NuqsAdapter } from 'nuqs/adapters/react-router/v7'
 import './i18n'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { ProtectedRoute } from './components/ProtectedRoute'
 
 // ── Lazy pages ────────────────────────────────────────────────────────────────
@@ -56,6 +57,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <NuqsAdapter>
+          <ErrorBoundary>
           <Suspense fallback={<PageLoader />}>
             <Routes>
               {/* ── Public routes (no layout, no auth guard) ──── */}
@@ -109,6 +111,7 @@ function App() {
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
+          </ErrorBoundary>
         </NuqsAdapter>
       </BrowserRouter>
     </QueryClientProvider>
