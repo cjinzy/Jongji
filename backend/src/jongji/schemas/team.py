@@ -48,6 +48,7 @@ class TeamResponse(BaseModel):
 
     id: UUID
     name: str
+    slug: str
     description: str | None
     is_archived: bool
     created_by: UUID

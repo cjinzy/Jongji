@@ -11,7 +11,7 @@ from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from jongji.api.deps import get_current_user, get_db
+from jongji.api.deps import get_current_user, get_db, require_team_member
 from jongji.models.team import TeamMember
 from jongji.models.user import User
 from jongji.schemas.team import (
@@ -39,6 +39,7 @@ def _build_team_response(team, member_count: int) -> TeamResponse:
     return TeamResponse(
         id=team.id,
         name=team.name,
+        slug=team.slug,
         description=team.description,
         is_archived=team.is_archived,
         created_by=team.created_by,
@@ -94,11 +95,26 @@ async def create_team(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="팀 생성에 실패했습니다.")
 
 
+@router.get("/by-slug/{team_slug}", response_model=TeamResponse)
+async def get_team_by_slug(
+    team_slug: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """slug로 팀 상세 정보를 반환합니다."""
+    team = await team_service.get_team_by_slug(team_slug, db)
+    if not team:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="팀을 찾을 수 없습니다.")
+    members = await team_service.get_members(team.id, db)
+    return _build_team_response(team, len(members))
+
+
 @router.get("/{team_id}", response_model=TeamResponse)
 async def get_team(
     team_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _membership: TeamMember = Depends(require_team_member),
 ):
     """팀 상세 정보를 반환합니다."""
     team = await team_service.get_team(team_id, db)
@@ -114,6 +130,7 @@ async def update_team(
     data: TeamUpdate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _membership: TeamMember = Depends(require_team_member),
 ):
     """팀 정보를 수정합니다. 리더 또는 관리자만 수정할 수 있습니다."""
     has_permission = await team_service.check_team_permission(current_user, team_id, db)
@@ -137,6 +154,7 @@ async def archive_team(
     team_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _membership: TeamMember = Depends(require_team_member),
 ):
     """팀을 아카이브합니다. 리더 또는 관리자만 가능하며 하위 프로젝트도 함께 아카이브됩니다."""
     has_permission = await team_service.check_team_permission(current_user, team_id, db)
@@ -158,6 +176,7 @@ async def list_members(
     team_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _membership: TeamMember = Depends(require_team_member),
 ):
     """팀 멤버 목록을 반환합니다."""
     team = await team_service.get_team(team_id, db)
@@ -179,6 +198,7 @@ async def add_member(
     data: TeamMemberAdd,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _membership: TeamMember = Depends(require_team_member),
 ):
     """팀에 멤버를 추가합니다. 리더 또는 관리자만 가능합니다."""
     has_permission = await team_service.check_team_permission(current_user, team_id, db)
@@ -204,6 +224,7 @@ async def remove_member(
     user_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _membership: TeamMember = Depends(require_team_member),
 ):
     """팀에서 멤버를 제거합니다. 리더 또는 관리자만 가능합니다."""
     has_permission = await team_service.check_team_permission(current_user, team_id, db)

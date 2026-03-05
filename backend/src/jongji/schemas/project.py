@@ -60,6 +60,7 @@ class ProjectResponse(BaseModel):
     id: UUID
     team_id: UUID
     name: str
+    slug: str
     key: str
     description: str | None = None
     is_private: bool

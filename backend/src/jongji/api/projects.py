@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from jongji.api.deps import get_current_user, get_db
+from jongji.api.deps import get_current_user, get_db, require_project_access
 from jongji.models.user import User
 from jongji.schemas.project import (
     ProjectCreate,
@@ -55,11 +55,26 @@ async def create_project(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="프로젝트 생성에 실패했습니다.")
 
 
+@router.get("/by-slug/{team_slug}/{project_slug}", response_model=ProjectResponse)
+async def get_project_by_slug(
+    team_slug: str,
+    project_slug: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """team_slug와 project_slug로 프로젝트 상세 정보를 반환합니다."""
+    project = await project_service.get_project_by_slug(team_slug, project_slug, db)
+    if not project:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="프로젝트를 찾을 수 없습니다.")
+    return ProjectResponse.model_validate(project)
+
+
 @router.get("/{project_id}", response_model=ProjectResponse)
 async def get_project(
     project_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_project_access),
 ):
     """프로젝트 상세 정보를 반환합니다."""
     try:
@@ -75,6 +90,7 @@ async def update_project(
     data: ProjectUpdate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_project_access),
 ):
     """프로젝트 정보를 수정합니다. 소유자/리더/관리자만 수정할 수 있습니다."""
     has_permission = await project_service.check_project_permission(current_user, project_id, db)
@@ -96,6 +112,7 @@ async def archive_project(
     project_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_project_access),
 ):
     """프로젝트를 아카이브합니다. 소유자/리더/관리자만 가능합니다."""
     has_permission = await project_service.check_project_permission(current_user, project_id, db)
@@ -116,6 +133,7 @@ async def list_members(
     project_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_project_access),
 ):
     """프로젝트 멤버 목록을 반환합니다."""
     try:
@@ -132,6 +150,7 @@ async def add_member(
     data: ProjectMemberAdd,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_project_access),
 ):
     """프로젝트에 멤버를 추가합니다. 소유자/리더/관리자만 가능합니다."""
     has_permission = await project_service.check_project_permission(current_user, project_id, db)
@@ -154,6 +173,7 @@ async def remove_member(
     user_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_project_access),
 ):
     """프로젝트에서 멤버를 제거합니다. 소유자/리더/관리자만 가능합니다."""
     has_permission = await project_service.check_project_permission(current_user, project_id, db)

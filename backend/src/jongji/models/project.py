@@ -18,11 +18,15 @@ class Project(Base):
     """
 
     __tablename__ = "projects"
-    __table_args__ = (Index("idx_projects_team_id", "team_id"),)
+    __table_args__ = (
+        UniqueConstraint("team_id", "slug", name="uq_projects_team_slug"),
+        Index("idx_projects_team_id", "team_id"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     team_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("teams.id"), nullable=False)
     name: Mapped[str] = mapped_column(String, nullable=False)
+    slug: Mapped[str] = mapped_column(String, nullable=False, index=True)
     key: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_private: Mapped[bool] = mapped_column(Boolean, default=False)

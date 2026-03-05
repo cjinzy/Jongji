@@ -12,9 +12,55 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from jongji.models.enums import ProjectRole
 from jongji.models.project import Project, ProjectMember
-from jongji.models.team import TeamMember
+from jongji.models.team import Team, TeamMember
 from jongji.models.user import User
 from jongji.schemas.project import ProjectCreate, ProjectMemberAdd, ProjectUpdate
+from jongji.utils.slug import generate_slug
+
+
+async def _unique_project_slug(name: str, team_id: uuid.UUID, db: AsyncSession) -> str:
+    """팀 범위 내에서 유니크한 프로젝트 slug를 생성합니다.
+
+    동일 slug가 해당 팀 내에 존재할 경우 -1, -2 등 숫자 접미사를 추가합니다.
+
+    Args:
+        name: 프로젝트 이름.
+        team_id: 소속 팀 UUID.
+        db: 비동기 DB 세션.
+
+    Returns:
+        팀 내 유니크한 slug 문자열.
+    """
+    base_slug = generate_slug(name)
+    slug = base_slug
+    suffix = 0
+    while True:
+        result = await db.execute(
+            select(Project).where(Project.team_id == team_id, Project.slug == slug)
+        )
+        if result.scalar_one_or_none() is None:
+            return slug
+        suffix += 1
+        slug = f"{base_slug}-{suffix}"
+
+
+async def get_project_by_slug(team_slug: str, project_slug: str, db: AsyncSession) -> Project | None:
+    """team_slug와 project_slug로 프로젝트를 조회합니다.
+
+    Args:
+        team_slug: 팀 slug.
+        project_slug: 프로젝트 slug.
+        db: 비동기 DB 세션.
+
+    Returns:
+        Project 모델 또는 None.
+    """
+    result = await db.execute(
+        select(Project)
+        .join(Team, Team.id == Project.team_id)
+        .where(Team.slug == team_slug, Project.slug == project_slug)
+    )
+    return result.scalar_one_or_none()
 
 
 async def create_project(data: ProjectCreate, owner_id: uuid.UUID, db: AsyncSession) -> Project:
@@ -39,9 +85,11 @@ async def create_project(data: ProjectCreate, owner_id: uuid.UUID, db: AsyncSess
         if existing.scalar_one_or_none():
             raise ValueError(f"프로젝트 key '{data.key}'는 이미 사용 중입니다.")
 
+        slug = await _unique_project_slug(data.name, data.team_id, db)
         project = Project(
             team_id=data.team_id,
             name=data.name,
+            slug=slug,
             key=data.key,
             description=data.description,
             is_private=data.is_private,

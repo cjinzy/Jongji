@@ -15,6 +15,44 @@ from jongji.models.project import Project
 from jongji.models.team import Team, TeamMember
 from jongji.models.user import User
 from jongji.schemas.team import TeamUpdate
+from jongji.utils.slug import generate_slug
+
+
+async def _unique_team_slug(name: str, db: AsyncSession) -> str:
+    """팀 이름으로부터 유니크한 slug를 생성합니다.
+
+    동일 slug가 존재할 경우 -1, -2 등 숫자 접미사를 추가합니다.
+
+    Args:
+        name: 팀 이름.
+        db: 비동기 DB 세션.
+
+    Returns:
+        유니크한 slug 문자열.
+    """
+    base_slug = generate_slug(name)
+    slug = base_slug
+    suffix = 0
+    while True:
+        result = await db.execute(select(Team).where(Team.slug == slug))
+        if result.scalar_one_or_none() is None:
+            return slug
+        suffix += 1
+        slug = f"{base_slug}-{suffix}"
+
+
+async def get_team_by_slug(slug: str, db: AsyncSession) -> Team | None:
+    """slug로 팀을 조회합니다.
+
+    Args:
+        slug: 팀 slug.
+        db: 비동기 DB 세션.
+
+    Returns:
+        Team 모델 또는 None.
+    """
+    result = await db.execute(select(Team).where(Team.slug == slug))
+    return result.scalar_one_or_none()
 
 
 async def create_team(name: str, description: str | None, creator_id: uuid.UUID, db: AsyncSession) -> Team:
@@ -30,7 +68,8 @@ async def create_team(name: str, description: str | None, creator_id: uuid.UUID,
         생성된 Team 모델.
     """
     try:
-        team = Team(name=name, description=description, created_by=creator_id)
+        slug = await _unique_team_slug(name, db)
+        team = Team(name=name, slug=slug, description=description, created_by=creator_id)
         db.add(team)
         await db.flush()
 
