@@ -107,3 +107,39 @@ class TaskCloneResponse(TaskResponse):
     """작업 복제 응답 스키마 (TaskResponse 확장)."""
 
     pass
+
+
+class TaskStatusUpdate(BaseModel):
+    """작업 상태 전환 요청 스키마.
+
+    Attributes:
+        status: 변경할 목표 상태.
+    """
+
+    status: TaskStatus
+
+
+class TaskRelationCreate(BaseModel):
+    """작업 blocked_by 관계 생성 요청 스키마.
+
+    Attributes:
+        blocked_by_task_id: 이 작업을 차단하는 작업의 UUID.
+    """
+
+    blocked_by_task_id: UUID
+
+
+class TaskRelationResponse(BaseModel):
+    """작업 관계 응답 스키마.
+
+    Attributes:
+        id: 관계 UUID.
+        task_id: 대상 작업 UUID.
+        blocked_by_task_id: 차단하는 작업 UUID.
+    """
+
+    id: UUID
+    task_id: UUID
+    blocked_by_task_id: UUID
+
+    model_config = {"from_attributes": True}

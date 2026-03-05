@@ -3,7 +3,6 @@
 Task CRUD, 태그 추출, 담당자 프로젝트 멤버 검증 등 비즈니스 로직을 담당합니다.
 """
 
-import re
 import uuid
 
 from sqlalchemy import and_, delete, select
@@ -12,24 +11,11 @@ from sqlalchemy.orm import joinedload, selectinload
 
 from jongji.models.enums import ProjectRole, TaskStatus, TeamRole
 from jongji.models.project import Project, ProjectMember
-from jongji.models.task import Task, TaskHistory, TaskLabel, TaskRelation, TaskTag
+from jongji.models.task import Task, TaskHistory, TaskLabel, TaskRelation
 from jongji.models.team import TeamMember
 from jongji.models.user import User
 from jongji.schemas.task import TaskCreate, TaskUpdate
-
-TAG_PATTERN = re.compile(r"#([a-zA-Z가-힣0-9_-]+)")
-
-
-def extract_tags(text: str) -> list[str]:
-    """텍스트에서 해시태그를 추출합니다.
-
-    Args:
-        text: 태그를 포함한 텍스트.
-
-    Returns:
-        '#'를 제거한 태그 이름 목록 (중복 제거).
-    """
-    return list(dict.fromkeys(TAG_PATTERN.findall(text)))
+from jongji.services import tag_service
 
 
 async def _verify_project_member(
@@ -107,20 +93,9 @@ async def create_task(
     db.add(task)
     await db.flush()
 
-    # 태그 추출 및 저장
-    tag_texts = []
-    if data.title:
-        tag_texts.extend(extract_tags(data.title))
-    if data.description:
-        tag_texts.extend(extract_tags(data.description))
+    # 태그 동기화
+    await tag_service.sync_tags(task.id, data.title, data.description, db)
 
-    seen = set()
-    for tag_name in tag_texts:
-        if tag_name not in seen:
-            seen.add(tag_name)
-            db.add(TaskTag(task_id=task.id, tag=tag_name))
-
-    await db.flush()
     return task
 
 
@@ -253,6 +228,11 @@ async def update_task(
             setattr(task, field_name, new_value)
 
     await db.flush()
+
+    # 제목/설명 변경 시 태그 동기화
+    if "title" in update_data or "description" in update_data:
+        await tag_service.sync_tags(task.id, task.title, task.description, db)
+
     return task
 
 

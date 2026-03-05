@@ -4,7 +4,7 @@
 ORM으로 직접 사용자를 생성하고 JWT를 발급하여 auth 의존성을 우회합니다.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import bcrypt
 import pytest
@@ -33,7 +33,7 @@ def _make_token(user_id: str) -> str:
     """
     payload = {
         "sub": user_id,
-        "exp": datetime.now(timezone.utc) + timedelta(hours=1),
+        "exp": datetime.now(UTC) + timedelta(hours=1),
     }
     return jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
 
@@ -224,7 +224,7 @@ class TestSessions:
         token = RefreshToken(
             user_id=normal_user.id,
             token_hash="fakehash",
-            expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+            expires_at=datetime.now(UTC) + timedelta(days=7),
             device_info="Test Device",
         )
         db_session.add(token)
@@ -239,7 +239,7 @@ class TestSessions:
         token = RefreshToken(
             user_id=normal_user.id,
             token_hash="fakehash2",
-            expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+            expires_at=datetime.now(UTC) + timedelta(days=7),
             device_info="To Revoke",
         )
         db_session.add(token)

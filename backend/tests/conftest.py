@@ -4,7 +4,8 @@ testcontainers를 사용하여 테스트용 PostgreSQL 컨테이너를 관리합
 """
 
 import pytest
-from sqlalchemy import event as sa_event, text
+from sqlalchemy import event as sa_event
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from jongji.database import Base

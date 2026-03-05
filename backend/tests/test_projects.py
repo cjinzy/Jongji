@@ -4,7 +4,7 @@
 ORM으로 직접 객체를 생성하고 JWT를 발급하여 auth 의존성을 우회합니다.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import bcrypt
 import pytest
@@ -36,7 +36,7 @@ def _make_token(user_id: str) -> str:
     """
     payload = {
         "sub": user_id,
-        "exp": datetime.now(timezone.utc) + timedelta(hours=1),
+        "exp": datetime.now(UTC) + timedelta(hours=1),
     }
     return jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
 

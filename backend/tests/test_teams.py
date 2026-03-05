@@ -4,7 +4,7 @@
 ORM으로 직접 사용자를 생성하고 JWT를 발급하여 auth 의존성을 우회합니다.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 import bcrypt
@@ -15,10 +15,10 @@ from jose import jwt
 from jongji.config import settings
 from jongji.database import get_db
 from jongji.main import app
-from jongji.models.team import Team, TeamMember
-from jongji.models.user import User
 from jongji.models.enums import TeamRole
 from jongji.models.project import Project
+from jongji.models.team import Team, TeamMember
+from jongji.models.user import User
 
 
 def _hash_password(password: str) -> str:
@@ -37,7 +37,7 @@ def _make_token(user_id: str) -> str:
     """
     payload = {
         "sub": user_id,
-        "exp": datetime.now(timezone.utc) + timedelta(hours=1),
+        "exp": datetime.now(UTC) + timedelta(hours=1),
     }
     return jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
 

@@ -2,6 +2,7 @@
 
 import pytest
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from jongji.models.project import Project
 from jongji.models.system import SystemSetting
@@ -134,5 +135,5 @@ async def test_unique_project_key(db_session):
     p2 = Project(team_id=team.id, name="P2", key="SAME", owner_id=user.id)
     db_session.add(p2)
 
-    with pytest.raises(Exception):  # IntegrityError
+    with pytest.raises(IntegrityError):
         await db_session.flush()

@@ -5,8 +5,6 @@
 
 import uuid
 
-import pytest
-
 from jongji.services.auth_service import (
     create_access_token,
     hash_password,

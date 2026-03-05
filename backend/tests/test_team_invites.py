@@ -11,11 +11,10 @@ from sqlalchemy import select
 
 from jongji.database import get_db
 from jongji.main import app
+from jongji.models.enums import TeamRole
 from jongji.models.team import Team, TeamInvite, TeamMember
 from jongji.models.user import User
-from jongji.models.enums import TeamRole
 from jongji.services.auth_service import hash_password
-
 
 # ---------------------------------------------------------------------------
 # 픽스처
@@ -241,8 +240,8 @@ class TestListInvites:
 
     async def test_list_invites(self, client, team_with_leader, leader_user, db_session):
         """활성 초대만 반환하는지 검증."""
-        from datetime import UTC, datetime, timedelta
         import secrets
+        from datetime import UTC, datetime, timedelta
 
         team, _ = team_with_leader
         token = await _get_token(client, leader_user.email)
@@ -292,8 +291,8 @@ class TestDeactivateInvite:
 
     async def test_deactivate_invite(self, client, team_with_leader, leader_user, db_session):
         """초대 비활성화 시 is_active=False로 변경됨."""
-        from datetime import UTC, datetime, timedelta
         import secrets
+        from datetime import UTC, datetime, timedelta
 
         team, _ = team_with_leader
         token = await _get_token(client, leader_user.email)
@@ -340,8 +339,8 @@ class TestJoinByToken:
 
     async def test_join_by_token(self, client, team_with_leader, leader_user, other_user, db_session):
         """유효한 토큰으로 팀 참여 시 멤버로 추가됨."""
-        from datetime import UTC, datetime, timedelta
         import secrets
+        from datetime import UTC, datetime, timedelta
 
         team, _ = team_with_leader
 
@@ -376,8 +375,8 @@ class TestJoinByToken:
 
     async def test_join_expired_token(self, client, team_with_leader, leader_user, other_user, db_session):
         """만료된 초대 토큰으로 참여 시 400 반환."""
-        from datetime import UTC, datetime, timedelta
         import secrets
+        from datetime import UTC, datetime, timedelta
 
         team, _ = team_with_leader
 
@@ -402,8 +401,8 @@ class TestJoinByToken:
 
     async def test_join_max_uses_exceeded(self, client, team_with_leader, leader_user, other_user, db_session):
         """최대 사용 횟수 초과된 초대 토큰으로 참여 시 400 반환."""
-        from datetime import UTC, datetime, timedelta
         import secrets
+        from datetime import UTC, datetime, timedelta
 
         team, _ = team_with_leader
 
@@ -430,8 +429,8 @@ class TestJoinByToken:
 
     async def test_join_already_member(self, client, team_with_leader, leader_user, db_session):
         """이미 팀 멤버인 경우 멱등성 보장 (에러 없음)."""
-        from datetime import UTC, datetime, timedelta
         import secrets
+        from datetime import UTC, datetime, timedelta
 
         team, _ = team_with_leader
 
@@ -458,8 +457,8 @@ class TestJoinByToken:
 
     async def test_join_inactive_token(self, client, team_with_leader, leader_user, other_user, db_session):
         """비활성화된 초대 토큰으로 참여 시 400 반환."""
-        from datetime import UTC, datetime, timedelta
         import secrets
+        from datetime import UTC, datetime, timedelta
 
         team, _ = team_with_leader
 

@@ -8,21 +8,33 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from loguru import logger
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from jongji.api.deps import get_current_user
 from jongji.database import get_db
 from jongji.models.enums import TaskStatus
+from jongji.models.task import TaskRelation
 from jongji.models.user import User
 from jongji.schemas.common import CursorPage
 from jongji.schemas.task import (
     TaskCloneResponse,
     TaskCreate,
     TaskLabelResponse,
+    TaskRelationCreate,
+    TaskRelationResponse,
     TaskResponse,
+    TaskStatusUpdate,
     TaskUpdate,
 )
 from jongji.services import task_service
+from jongji.services.transition_service import (
+    MAX_BLOCKED_BY,
+    check_blocked_by,
+    count_blocked_by,
+    detect_cycle,
+    validate_transition,
+)
 
 router = APIRouter(tags=["tasks"])
 
@@ -257,3 +269,188 @@ async def clone_task(
     except ValueError as e:
         logger.warning(f"작업 복제 실패: {e}\n{traceback.format_exc()}")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.patch("/api/v1/tasks/{task_id}/status")
+async def update_task_status(
+    task_id: uuid.UUID,
+    data: TaskStatusUpdate,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> TaskResponse:
+    """작업 상태를 전환합니다.
+
+    허용된 전환 테이블에 따라 상태를 변경하며, PROGRESS 진입 시
+    blocked_by 작업이 모두 DONE 또는 CLOSED인지 검사합니다.
+
+    Args:
+        task_id: 작업 UUID.
+        data: 목표 상태.
+        user: 인증된 사용자.
+        db: DB 세션.
+
+    Returns:
+        TaskResponse: 변경된 작업.
+
+    Raises:
+        HTTPException 404: 작업 미존재.
+        HTTPException 403: 권한 없음.
+        HTTPException 422: 허용되지 않는 전환 또는 blocked_by 미완료.
+    """
+    task = await task_service.get_task(task_id, db)
+    if not task:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="작업을 찾을 수 없습니다.")
+
+    # 권한 검사
+    from jongji.services.task_service import _check_update_permission
+    if not await _check_update_permission(task, user, db):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="상태를 변경할 권한이 없습니다.")
+
+    # 전환 유효성 검사
+    if not validate_transition(task.status, data.status):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"{task.status} -> {data.status} 전환은 허용되지 않습니다.",
+        )
+
+    # PROGRESS 진입 시 blocked_by 검사
+    if data.status == TaskStatus.PROGRESS:
+        unfinished = await check_blocked_by(task_id, db)
+        if unfinished:
+            ids = [str(t.id) for t in unfinished]
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"blocked_by 작업이 완료되지 않았습니다: {ids}",
+            )
+
+    try:
+        old_status = task.status
+        task.status = data.status
+        await db.flush()
+        await db.commit()
+        full_task = await task_service.get_task(task.id, db)
+        logger.info(f"작업 {task_id} 상태 전환: {old_status} -> {data.status}")
+        return _task_to_response(full_task)
+    except Exception:
+        logger.error(f"작업 상태 전환 실패: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="상태 전환에 실패했습니다.",
+        )
+
+
+@router.post("/api/v1/tasks/{task_id}/relations", status_code=status.HTTP_201_CREATED)
+async def add_task_relation(
+    task_id: uuid.UUID,
+    data: TaskRelationCreate,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> TaskRelationResponse:
+    """작업에 blocked_by 관계를 추가합니다.
+
+    자기 참조, 사이클, 최대 10개 제한을 검사합니다.
+
+    Args:
+        task_id: 대상 작업 UUID.
+        data: 추가할 blocker 작업 UUID.
+        user: 인증된 사용자.
+        db: DB 세션.
+
+    Returns:
+        TaskRelationResponse: 생성된 관계.
+
+    Raises:
+        HTTPException 404: 작업 미존재.
+        HTTPException 422: 자기 참조, 사이클, 개수 초과.
+    """
+    task = await task_service.get_task(task_id, db)
+    if not task:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="작업을 찾을 수 없습니다.")
+
+    # 자기 참조 검사
+    if task_id == data.blocked_by_task_id:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="자기 자신을 blocked_by로 설정할 수 없습니다.",
+        )
+
+    # blocker 작업 존재 여부 확인
+    from jongji.models.task import Task as TaskModel
+    blocker_res = await db.execute(select(TaskModel).where(TaskModel.id == data.blocked_by_task_id))
+    blocker = blocker_res.scalar_one_or_none()
+    if not blocker:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="blocker 작업을 찾을 수 없습니다.")
+
+    # 최대 10개 제한
+    current_count = await count_blocked_by(task_id, db)
+    if current_count >= MAX_BLOCKED_BY:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"blocked_by는 최대 {MAX_BLOCKED_BY}개까지 설정할 수 있습니다.",
+        )
+
+    # 사이클 감지
+    has_cycle = await detect_cycle(task_id, data.blocked_by_task_id, db)
+    if has_cycle:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="순환 의존성이 감지되었습니다.",
+        )
+
+    try:
+        relation = TaskRelation(task_id=task_id, blocked_by_task_id=data.blocked_by_task_id)
+        db.add(relation)
+        await db.flush()
+        await db.commit()
+        await db.refresh(relation)
+        return TaskRelationResponse.model_validate(relation)
+    except Exception:
+        logger.error(f"관계 추가 실패: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="관계 추가에 실패했습니다.",
+        )
+
+
+@router.delete("/api/v1/tasks/{task_id}/relations/{blocker_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_task_relation(
+    task_id: uuid.UUID,
+    blocker_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """작업의 blocked_by 관계를 삭제합니다.
+
+    Args:
+        task_id: 대상 작업 UUID.
+        blocker_id: 제거할 blocker 작업 UUID.
+        user: 인증된 사용자.
+        db: DB 세션.
+
+    Raises:
+        HTTPException 404: 관계 미존재.
+    """
+    result = await db.execute(
+        select(TaskRelation).where(
+            TaskRelation.task_id == task_id,
+            TaskRelation.blocked_by_task_id == blocker_id,
+        )
+    )
+    relation = result.scalar_one_or_none()
+    if not relation:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="관계를 찾을 수 없습니다.")
+
+    try:
+        await db.execute(
+            delete(TaskRelation).where(
+                TaskRelation.task_id == task_id,
+                TaskRelation.blocked_by_task_id == blocker_id,
+            )
+        )
+        await db.commit()
+    except Exception:
+        logger.error(f"관계 삭제 실패: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="관계 삭제에 실패했습니다.",
+        )
