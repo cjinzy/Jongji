@@ -17,6 +17,7 @@ dependencies = [
     "httpx>=0.28.0",
     "python-multipart>=0.0.20",
     "aiosmtplib>=3.0.0",
+    "apscheduler>=3.11.2",
 ]
 
 [project.optional-dependencies]
