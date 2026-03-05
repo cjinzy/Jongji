@@ -102,6 +102,7 @@ async def revoke_session(
 
         token.revoked_at = datetime.now(UTC)
         await db.flush()
+        await db.commit()
         logger.info(f"세션 revoke: session_id={session_id}, user_id={current_user.id}")
         return {"detail": "세션이 로그아웃되었습니다."}
     except HTTPException:

@@ -55,7 +55,9 @@ async def create_comment(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="작업을 찾을 수 없습니다.")
 
     try:
-        return await comment_service.create_comment(task_id, current_user.id, data, db)
+        comment = await comment_service.create_comment(task_id, current_user.id, data, db)
+        await db.commit()
+        return comment
     except Exception:
         logger.error(f"댓글 생성 실패: {traceback.format_exc()}")
         raise HTTPException(
@@ -81,7 +83,9 @@ async def update_comment(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="댓글 수정 권한이 없습니다.")
 
     try:
-        return await comment_service.update_comment(comment_id, data, db)
+        updated = await comment_service.update_comment(comment_id, data, db)
+        await db.commit()
+        return updated
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception:
@@ -109,6 +113,7 @@ async def delete_comment(
 
     try:
         await comment_service.delete_comment(comment_id, db)
+        await db.commit()
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception:

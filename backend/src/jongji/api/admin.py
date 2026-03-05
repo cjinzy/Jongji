@@ -32,7 +32,9 @@ async def update_settings(
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, str]:
     """시스템 설정을 업데이트합니다."""
-    return await user_service.update_system_settings(data, db)
+    result = await user_service.update_system_settings(data, db)
+    await db.commit()
+    return result
 
 
 @router.put("/users/{user_id}/role", response_model=UserResponse)
@@ -44,6 +46,8 @@ async def update_user_role(
 ):
     """사용자의 관리자 역할을 변경합니다."""
     try:
-        return await user_service.update_user_role(user_id, data.is_admin, db)
+        updated = await user_service.update_user_role(user_id, data.is_admin, db)
+        await db.commit()
+        return updated
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))

@@ -44,6 +44,7 @@ async def create_template(
     """새 작업 템플릿을 생성합니다."""
     try:
         template = await template_service.create_template(project_id, data, current_user.id, db)
+        await db.commit()
         return template
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
@@ -65,6 +66,7 @@ async def update_template(
     """작업 템플릿을 수정합니다."""
     try:
         template = await template_service.update_template(template_id, data, db)
+        await db.commit()
         return template
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
@@ -85,6 +87,7 @@ async def delete_template(
     """작업 템플릿을 삭제합니다."""
     try:
         await template_service.delete_template(template_id, db)
+        await db.commit()
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception:
@@ -108,6 +111,7 @@ async def create_task_from_template(
     """템플릿을 기반으로 작업을 생성합니다."""
     try:
         task = await template_service.create_task_from_template(template_id, current_user.id, db)
+        await db.commit()
         return _task_to_response(task)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))

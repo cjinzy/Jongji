@@ -122,6 +122,7 @@ async def update_team(
 
     try:
         team = await team_service.update_team(team_id, data, db)
+        await db.commit()
         members = await team_service.get_members(team_id, db)
         return _build_team_response(team, len(members))
     except ValueError as e:
@@ -186,6 +187,7 @@ async def add_member(
 
     try:
         membership = await team_service.add_member(team_id, data.user_id, data.role, db)
+        await db.commit()
         user_result = await db.execute(select(User).where(User.id == data.user_id))
         user = user_result.scalar_one_or_none()
         return _build_member_response(membership, user)
@@ -210,6 +212,7 @@ async def remove_member(
 
     try:
         await team_service.remove_member(team_id, user_id, db)
+        await db.commit()
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception:

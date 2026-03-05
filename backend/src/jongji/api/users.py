@@ -39,7 +39,9 @@ async def update_me(
 ):
     """현재 사용자의 프로필을 수정합니다."""
     try:
-        return await user_service.update_user(user, data, db)
+        updated = await user_service.update_user(user, data, db)
+        await db.commit()
+        return updated
     except Exception:
         logger.error(f"프로필 수정 실패: {traceback.format_exc()}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="프로필 수정에 실패했습니다.")
@@ -53,6 +55,7 @@ async def deactivate_me(
     """현재 사용자의 계정을 비활성화합니다."""
     try:
         await user_service.deactivate_user(user, db)
+        await db.commit()
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
 
@@ -78,6 +81,7 @@ async def revoke_session(
     """특정 세션을 폐기합니다."""
     try:
         await user_service.revoke_session(user.id, session_id, db)
+        await db.commit()
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
@@ -102,6 +106,7 @@ async def create_api_key(
 ):
     """새 API 키를 생성합니다. raw_key는 이 응답에서만 확인할 수 있습니다."""
     api_key, raw_key = await user_service.create_api_key(user.id, data.name, db)
+    await db.commit()
     return ApiKeyCreatedResponse(
         id=api_key.id,
         name=api_key.name,
@@ -122,5 +127,6 @@ async def delete_api_key(
     """API 키를 삭제(비활성화)합니다."""
     try:
         await user_service.delete_api_key(user.id, key_id, db)
+        await db.commit()
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
