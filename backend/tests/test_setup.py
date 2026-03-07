@@ -137,6 +137,73 @@ class TestSetupSettings:
         assert resp.status_code == 403
 
 
+class TestSetupInit:
+    """Setup init 원스텝 완료 테스트."""
+
+    async def test_setup_init_success(self, client):
+        """관리자 정보만으로 init 성공 시 201 반환."""
+        resp = await client.post(
+            "/api/v1/setup/init",
+            json={
+                "admin_name": "InitAdmin",
+                "admin_email": "initadmin@example.com",
+                "admin_password": "InitPass1",
+                "app_name": "InitApp",
+            },
+        )
+        assert resp.status_code == 201
+        # 완료 상태 확인
+        status_resp = await client.get("/api/v1/setup/status")
+        assert status_resp.json()["setup_completed"] is True
+
+    async def test_setup_init_with_oauth_fields(self, client):
+        """OAuth 필드 포함 init 시 oauth_configured=True 반환."""
+        resp = await client.post(
+            "/api/v1/setup/init",
+            json={
+                "admin_name": "OAuthAdmin",
+                "admin_email": "oauthinit@example.com",
+                "admin_password": "OAuthPass1",
+                "app_name": "OAuthApp",
+                "google_client_id": "google-client-id-123",
+                "google_client_secret": "google-secret-456",
+                "google_redirect_uri": "http://localhost/auth/callback",
+            },
+        )
+        assert resp.status_code == 201
+        # oauth_configured 상태 확인
+        status_resp = await client.get("/api/v1/setup/status")
+        data = status_resp.json()
+        assert data["setup_completed"] is True
+        assert data["oauth_configured"] is True
+
+    async def test_setup_init_without_oauth_fields(self, client):
+        """OAuth 필드 없이 init 시 oauth_configured=False."""
+        resp = await client.post(
+            "/api/v1/setup/init",
+            json={
+                "admin_name": "NoOAuthAdmin",
+                "admin_email": "nooauth@example.com",
+                "admin_password": "NoOAuthPass1",
+            },
+        )
+        assert resp.status_code == 201
+        status_resp = await client.get("/api/v1/setup/status")
+        data = status_resp.json()
+        assert data["oauth_configured"] is False
+
+    async def test_setup_init_already_completed_returns_403(self, client):
+        """이미 완료된 setup에 재시도 시 403 반환."""
+        payload = {
+            "admin_name": "Admin",
+            "admin_email": "dup@example.com",
+            "admin_password": "DupPass1",
+        }
+        await client.post("/api/v1/setup/init", json=payload)
+        resp = await client.post("/api/v1/setup/init", json=payload)
+        assert resp.status_code == 403
+
+
 class TestSetupComplete:
     """Setup 완료 처리 테스트."""
 
