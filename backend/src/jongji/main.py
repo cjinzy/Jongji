@@ -3,6 +3,7 @@
 앱 인스턴스 생성, 미들웨어 설정, 라우터 등록을 담당합니다.
 """
 
+import os
 import sys
 from contextlib import asynccontextmanager
 
@@ -88,3 +89,10 @@ app.include_router(export_router)
 app.include_router(dashboard_router)
 app.include_router(calendar_router)
 app.mount("/mcp", mcp.http_app())
+
+# E2E 테스트 전용 라우터 (E2E_TESTING=true일 때만 활성화)
+if os.environ.get("E2E_TESTING") == "true":
+    from jongji.api.testing import router as testing_router
+
+    app.include_router(testing_router, prefix="/api/v1")
+    logger.warning("E2E testing endpoints enabled — DO NOT use in production")

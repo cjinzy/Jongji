@@ -94,6 +94,32 @@ class SetupAdminCreate(BaseModel):
         return v
 
 
+class SetupInitRequest(BaseModel):
+    """초기 설정 원스텝 완료 요청 스키마 (프론트엔드 SetupPage용).
+
+    Attributes:
+        admin_name: 관리자 이름.
+        admin_email: 관리자 이메일.
+        admin_password: 관리자 비밀번호 (최소 8자, 대문자/숫자 포함).
+        app_name: 애플리케이션 이름 (기본값: Jongji).
+    """
+
+    admin_name: str = Field(min_length=1)
+    admin_email: EmailStr
+    admin_password: str = Field(min_length=8, max_length=128)
+    app_name: str | None = "Jongji"
+
+    @field_validator("admin_password")
+    @classmethod
+    def validate_password_complexity(cls, v: str) -> str:
+        """비밀번호 복잡성 검증: 대문자 + 숫자 포함."""
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("비밀번호에 대문자가 최소 1자 포함되어야 합니다.")
+        if not re.search(r"[0-9]", v):
+            raise ValueError("비밀번호에 숫자가 최소 1자 포함되어야 합니다.")
+        return v
+
+
 class SystemSettingsUpdate(BaseModel):
     """시스템 설정 업데이트 요청 스키마.
 

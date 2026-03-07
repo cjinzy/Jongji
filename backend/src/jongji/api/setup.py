@@ -16,6 +16,7 @@ from jongji.models.system import SystemSetting
 from jongji.models.user import User
 from jongji.schemas.user import (
     SetupAdminCreate,
+    SetupInitRequest,
     SetupStatusResponse,
     SystemSettingsUpdate,
     UserResponse,
@@ -45,6 +46,67 @@ async def setup_status(db: AsyncSession = Depends(get_db)):
         setup_completed=completed,
         oauth_available=oauth_available,
     )
+
+
+@router.post("/init", status_code=status.HTTP_201_CREATED)
+async def setup_init(
+    data: SetupInitRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """초기 설정 원스텝 완료 (프론트엔드 SetupPage용).
+
+    관리자 생성 → 앱 이름 설정 → setup_completed=true를 하나의 트랜잭션으로 처리합니다.
+
+    Args:
+        data: 초기 설정 요청 데이터 (관리자 정보 + 앱 이름).
+        db: 비동기 DB 세션.
+
+    Returns:
+        dict: 성공 메시지.
+    """
+    # Advisory lock으로 동시 요청 방지
+    await db.execute(text("SELECT pg_advisory_xact_lock(42)"))
+
+    completed = await check_setup_completed(db)
+    if completed:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Setup already completed",
+        )
+
+    user_count = await get_user_count(db)
+    if user_count > 0:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Admin user already exists",
+        )
+
+    try:
+        # 1. 관리자 생성
+        admin = User(
+            email=data.admin_email,
+            name=data.admin_name,
+            password_hash=await hash_password(data.admin_password),
+            is_admin=True,
+        )
+        db.add(admin)
+        await db.flush()
+
+        # 2. 앱 이름 설정
+        if data.app_name:
+            await _upsert_setting(db, "app_name", data.app_name)
+
+        # 3. 설정 완료 표시
+        await _upsert_setting(db, "setup_completed", "true")
+
+        await db.commit()
+    except HTTPException:
+        raise
+    except Exception:
+        logger.error(f"Failed to initialize setup: {traceback.format_exc()}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    return {"detail": "Setup completed successfully"}
 
 
 @router.post("/admin", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
