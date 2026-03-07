@@ -270,10 +270,7 @@ async def get_or_create_google_user(google_data: dict, db: AsyncSession) -> User
         db: 비동기 DB 세션.
 
     Returns:
-        사용자 객체.
-
-    Raises:
-        ValueError: 동일 이메일이 비-Google 계정으로 이미 존재하는 경우.
+        사용자 객체. 이메일 충돌 시 Google ID를 자동으로 연결합니다.
     """
     google_id = google_data["sub"]
     email = google_data["email"]
@@ -288,12 +285,10 @@ async def get_or_create_google_user(google_data: dict, db: AsyncSession) -> User
     result = await db.execute(select(User).where(User.email == email))
     existing = result.scalar_one_or_none()
     if existing:
-        if existing.password_hash:
-            raise ValueError(
-                "This email is registered with password. Please login with password and link Google account."
-            )
-        # Google ID 연결
+        # 이메일 충돌 시 Google ID 자동 연결 (비밀번호 계정도 포함)
         existing.google_id = google_id
+        if not existing.avatar_url and google_data.get("picture"):
+            existing.avatar_url = google_data.get("picture")
         await db.flush()
         return existing
 
