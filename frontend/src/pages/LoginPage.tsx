@@ -2,10 +2,10 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { MailRegular, LockClosedRegular, ArrowRightRegular } from '@fluentui/react-icons'
-import { useMutation } from '@tanstack/react-query'
-import { loginApi } from '../api/auth'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { loginApi, getMeApi } from '../api/auth'
 import { useAuthStore } from '../stores/auth'
-import { getMeApi } from '../api/auth'
+import { setupApi } from '../api/teams'
 
 export default function LoginPage() {
   const { t } = useTranslation()
@@ -15,6 +15,12 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fieldError, setFieldError] = useState('')
+
+  const { data: setupStatus } = useQuery({
+    queryKey: ['setup', 'status'],
+    queryFn: setupApi.getStatus,
+  })
+  const oauthAvailable = (setupStatus as { oauth_available?: boolean } | undefined)?.oauth_available ?? false
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -69,9 +75,16 @@ export default function LoginPage() {
           {/* Google OAuth button */}
           <button
             type="button"
-            className="w-full flex items-center justify-center gap-2.5 h-10 rounded-lg border border-border bg-bg-tertiary text-text-secondary text-sm font-medium hover:bg-bg-hover hover:text-text-primary hover:border-border transition-all duration-150 cursor-not-allowed opacity-70"
-            disabled
-            title="Coming soon"
+            onClick={() => {
+              if (oauthAvailable) window.location.href = '/api/v1/auth/google/authorize'
+            }}
+            disabled={!oauthAvailable}
+            className={`w-full flex items-center justify-center gap-2.5 h-10 rounded-lg border border-border bg-bg-tertiary text-text-secondary text-sm font-medium transition-all duration-150 ${
+              oauthAvailable
+                ? 'hover:bg-bg-hover hover:text-text-primary cursor-pointer'
+                : 'cursor-not-allowed opacity-50'
+            }`}
+            title={oauthAvailable ? undefined : t('auth.oauthNotConfigured')}
           >
             <GoogleIcon />
             {t('auth.googleLogin')}

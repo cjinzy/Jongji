@@ -12,6 +12,7 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 const LoginPage = lazy(() => import('./pages/LoginPage'))
 const RegisterPage = lazy(() => import('./pages/RegisterPage'))
 const SetupPage = lazy(() => import('./pages/SetupPage'))
+const AuthCallbackPage = lazy(() => import('./pages/AuthCallbackPage'))
 
 // Protected (rendered inside Layout)
 const Layout = lazy(() => import('./components/Layout'))
@@ -65,6 +66,7 @@ function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/setup" element={<SetupPage />} />
+              <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
               {/* ── Protected routes (auth guard + layout shell) ── */}
               <Route element={<ProtectedRoute />}>
