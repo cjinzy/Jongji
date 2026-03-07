@@ -19,7 +19,8 @@
     "passwordMismatch": "비밀번호가 일치하지 않습니다.",
     "passwordTooShort": "비밀번호는 8자 이상이어야 합니다.",
     "invalidCredentials": "이메일 또는 비밀번호가 올바르지 않습니다.",
-    "registerError": "회원가입 중 오류가 발생했습니다."
+    "registerError": "회원가입 중 오류가 발생했습니다.",
+    "oauthNotConfigured": "Google OAuth가 설정되지 않았습니다"
   },
   "nav": {
     "kanban": "칸반",
@@ -169,11 +170,23 @@
       "appNamePlaceholder": "Jongji"
     },
     "step3": {
+      "label": "Google OAuth",
+      "title": "Google OAuth (선택사항)",
+      "desc": "사용자가 Google로 로그인할 수 있도록 설정합니다. 건너뛰고 나중에 설정할 수 있습니다.",
+      "clientId": "클라이언트 ID",
+      "clientSecret": "클라이언트 보안 비밀",
+      "redirectUri": "리디렉션 URI",
+      "skipHint": "건너뛰기 — 나중에 관리자 > 보안에서 설정할 수 있습니다"
+    },
+    "step4": {
       "label": "확인",
       "title": "설정 확인",
       "desc": "아래 정보를 확인하고 설정을 완료하세요",
       "adminAccount": "관리자 계정",
       "appName": "앱 이름",
+      "googleOAuth": "Google OAuth",
+      "googleOAuthConfigured": "설정됨",
+      "googleOAuthSkipped": "건너뜀",
       "submit": "설정 완료"
     },
     "success": "설정이 완료되었습니다!",
@@ -245,6 +258,19 @@
       "inactiveStatus": "방해 금지 꺼짐",
       "activeHint": "까지 알림 없음",
       "save": "저장"
+    }
+  },
+  "admin": {
+    "oauth": {
+      "title": "Google OAuth",
+      "notConfigured": "Google OAuth가 설정되지 않았습니다",
+      "configure": "설정하기",
+      "edit": "수정",
+      "deleteConfirm": "Google OAuth 설정을 삭제하시겠습니까?",
+      "clientId": "클라이언트 ID",
+      "clientSecret": "클라이언트 보안 비밀",
+      "redirectUri": "리디렉션 URI",
+      "secretMasked": "보안 비밀 (마스킹됨)"
     }
   },
   "search": {

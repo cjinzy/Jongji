@@ -26,6 +26,9 @@ export interface SetupInitPayload {
   admin_password: string
   admin_name: string
   app_name?: string
+  google_client_id?: string
+  google_client_secret?: string
+  google_redirect_uri?: string
 }
 
 export interface CreateTeamPayload {

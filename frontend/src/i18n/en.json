@@ -19,7 +19,8 @@
     "passwordMismatch": "Passwords do not match.",
     "passwordTooShort": "Password must be at least 8 characters.",
     "invalidCredentials": "Invalid email or password.",
-    "registerError": "Something went wrong. Please try again."
+    "registerError": "Something went wrong. Please try again.",
+    "oauthNotConfigured": "Google OAuth not configured"
   },
   "nav": {
     "kanban": "Kanban",
@@ -169,11 +170,23 @@
       "appNamePlaceholder": "Jongji"
     },
     "step3": {
+      "label": "Google OAuth",
+      "title": "Google OAuth (Optional)",
+      "desc": "Allow users to sign in with Google. You can skip this and configure it later.",
+      "clientId": "Client ID",
+      "clientSecret": "Client Secret",
+      "redirectUri": "Redirect URI",
+      "skipHint": "Skip for now — configure in Admin > Security later"
+    },
+    "step4": {
       "label": "Confirm",
       "title": "Confirm Setup",
       "desc": "Review the information below and complete setup",
       "adminAccount": "Admin Account",
       "appName": "App Name",
+      "googleOAuth": "Google OAuth",
+      "googleOAuthConfigured": "Configured",
+      "googleOAuthSkipped": "Skipped",
       "submit": "Complete Setup"
     },
     "success": "Setup complete!",
@@ -245,6 +258,19 @@
       "inactiveStatus": "Do Not Disturb is off",
       "activeHint": "until",
       "save": "Save"
+    }
+  },
+  "admin": {
+    "oauth": {
+      "title": "Google OAuth",
+      "notConfigured": "Google OAuth is not configured",
+      "configure": "Configure",
+      "edit": "Edit",
+      "deleteConfirm": "Are you sure you want to remove Google OAuth configuration?",
+      "clientId": "Client ID",
+      "clientSecret": "Client Secret",
+      "redirectUri": "Redirect URI",
+      "secretMasked": "Secret (masked)"
     }
   },
   "search": {
