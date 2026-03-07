@@ -6,6 +6,7 @@ import {
   PersonRegular,
   AppGenericRegular,
   CheckmarkCircleRegular,
+  KeyRegular,
   EyeRegular,
   EyeOffRegular,
 } from '@fluentui/react-icons'
@@ -111,6 +112,9 @@ export default function SetupPage() {
     admin_email: '',
     admin_password: '',
     app_name: 'Jongji',
+    google_client_id: '',
+    google_client_secret: '',
+    google_redirect_uri: window.location.origin + '/api/v1/auth/google/callback',
   })
   const [error, setError] = useState('')
 
@@ -127,9 +131,10 @@ export default function SetupPage() {
     t('setup.step1.label'),
     t('setup.step2.label'),
     t('setup.step3.label'),
+    t('setup.step4.label'),
   ]
 
-  const stepIcons = [PersonRegular, AppGenericRegular, CheckmarkCircleRegular]
+  const stepIcons = [PersonRegular, AppGenericRegular, KeyRegular, CheckmarkCircleRegular]
 
   const canProceed = () => {
     if (step === 0) {
@@ -140,14 +145,19 @@ export default function SetupPage() {
       )
     }
     if (step === 1) return form.app_name.trim().length > 0
+    if (step === 2) return true
     return true
   }
 
   const handleNext = () => {
-    if (step < 2) {
+    if (step < 3) {
       setStep((s) => s + 1)
     } else {
-      submit(form)
+      const payload: typeof form & Record<string, unknown> = { ...form }
+      if (!payload.google_client_id) delete payload.google_client_id
+      if (!payload.google_client_secret) delete payload.google_client_secret
+      if (!payload.google_client_id) delete payload.google_redirect_uri
+      submit(payload as Parameters<typeof submit>[0])
     }
   }
 
@@ -188,10 +198,10 @@ export default function SetupPage() {
             </div>
             <div>
               <h2 className="text-base font-semibold text-text-primary">
-                {t(`setup.step${step + 1}.title` as never)}
+                {step === 3 ? t('setup.step4.title' as never) : t(`setup.step${step + 1}.title` as never)}
               </h2>
               <p className="text-xs text-text-secondary mt-0.5">
-                {t(`setup.step${step + 1}.desc` as never)}
+                {step === 3 ? t('setup.step4.desc' as never) : t(`setup.step${step + 1}.desc` as never)}
               </p>
             </div>
           </div>
@@ -236,11 +246,36 @@ export default function SetupPage() {
             )}
 
             {step === 2 && (
+              <div className="space-y-4">
+                <InputField
+                  label={t('setup.step3.clientId')}
+                  placeholder="1234567890-abc.apps.googleusercontent.com"
+                  value={form.google_client_id}
+                  onChange={set('google_client_id')}
+                  autoFocus
+                />
+                <InputField
+                  label={t('setup.step3.clientSecret')}
+                  type="password"
+                  placeholder="GOCSPX-..."
+                  value={form.google_client_secret}
+                  onChange={set('google_client_secret')}
+                />
+                <InputField
+                  label={t('setup.step3.redirectUri')}
+                  value={form.google_redirect_uri}
+                  onChange={set('google_redirect_uri')}
+                />
+                <p className="text-xs text-text-tertiary">{t('setup.step3.skipHint')}</p>
+              </div>
+            )}
+
+            {step === 3 && (
               <div className="space-y-3">
                 <div className="bg-bg-tertiary border border-border rounded-xl p-4 space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-text-tertiary uppercase tracking-wider font-medium">
-                      {t('setup.step3.adminAccount')}
+                      {t('setup.step4.adminAccount')}
                     </span>
                   </div>
                   <div className="space-y-1">
@@ -250,9 +285,19 @@ export default function SetupPage() {
                 </div>
                 <div className="bg-bg-tertiary border border-border rounded-xl p-4">
                   <span className="text-xs text-text-tertiary uppercase tracking-wider font-medium block mb-2">
-                    {t('setup.step3.appName')}
+                    {t('setup.step4.appName')}
                   </span>
                   <p className="text-sm font-semibold text-text-primary">{form.app_name}</p>
+                </div>
+                <div className="bg-bg-tertiary border border-border rounded-xl p-4">
+                  <span className="text-xs text-text-tertiary uppercase tracking-wider font-medium block mb-2">
+                    {t('setup.step4.googleOAuth')}
+                  </span>
+                  <p className="text-sm font-semibold text-text-primary">
+                    {form.google_client_id
+                      ? t('setup.step4.googleOAuthConfigured')
+                      : t('setup.step4.googleOAuthSkipped')}
+                  </p>
                 </div>
               </div>
             )}
@@ -274,6 +319,17 @@ export default function SetupPage() {
                 {t('common.back')}
               </button>
             )}
+            {step === 2 && (
+              <button
+                onClick={() => {
+                  setForm((f) => ({ ...f, google_client_id: '', google_client_secret: '' }))
+                  setStep((s) => s + 1)
+                }}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-text-secondary border border-border rounded-lg hover:bg-bg-hover hover:text-text-primary transition-all duration-150"
+              >
+                {t('common.skip')}
+              </button>
+            )}
             <button
               onClick={handleNext}
               disabled={!canProceed() || isPending}
@@ -281,8 +337,8 @@ export default function SetupPage() {
             >
               {isPending
                 ? t('common.loading')
-                : step === 2
-                ? t('setup.step3.submit')
+                : step === 3
+                ? t('setup.step4.submit')
                 : t('common.next')}
             </button>
           </div>
