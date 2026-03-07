@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   PeopleRegular,
   BuildingRegular,
@@ -8,6 +8,7 @@ import {
   InfoRegular,
 } from '@fluentui/react-icons'
 import { teamsApi } from '../api/teams'
+import { adminApi, type GoogleOAuthSettings, type GoogleOAuthSettingsUpdate } from '../api/admin'
 
 type Section = 'teams' | 'users' | 'security' | 'about'
 
@@ -141,12 +142,174 @@ function UsersSection() {
 
 function SecuritySection() {
   const { t } = useTranslation()
+  const queryClient = useQueryClient()
+
+  const [isEditing, setIsEditing] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [editForm, setEditForm] = useState<GoogleOAuthSettingsUpdate>({
+    client_id: '',
+    client_secret: '',
+    redirect_uri: window.location.origin + '/api/v1/auth/google/callback',
+  })
+
+  const { data: oauthSettings, isLoading, isError } = useQuery<GoogleOAuthSettings>({
+    queryKey: ['admin', 'oauth', 'google'],
+    queryFn: adminApi.getGoogleOAuth,
+    retry: false,
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: adminApi.updateGoogleOAuth,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'oauth', 'google'] })
+      setIsEditing(false)
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: adminApi.deleteGoogleOAuth,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'oauth', 'google'] })
+      setShowDeleteConfirm(false)
+    },
+  })
+
+  const handleEditOpen = () => {
+    setEditForm({
+      client_id: oauthSettings?.client_id ?? '',
+      client_secret: '',
+      redirect_uri: oauthSettings?.redirect_uri ?? window.location.origin + '/api/v1/auth/google/callback',
+    })
+    setIsEditing(true)
+  }
+
+  const handleSubmit = () => {
+    if (!editForm.client_id || !editForm.client_secret) return
+    updateMutation.mutate(editForm)
+  }
+
+  const isConfigured = !isError && oauthSettings != null
+
   return (
     <div>
       <h2 className="text-sm font-medium text-text-primary mb-4">
-        {t('admin.security', 'Security')}
+        {t('admin.oauth.title', 'Google OAuth')}
       </h2>
-      <Placeholder label={t('admin.comingSoon', 'Security settings coming soon')} />
+
+      {isLoading && (
+        <p className="text-xs text-text-tertiary font-mono">{t('common.loading')}</p>
+      )}
+
+      {!isLoading && !isConfigured && !isEditing && (
+        <div className="border border-dashed border-border rounded-xl p-5 space-y-3">
+          <p className="text-sm text-text-secondary">{t('admin.oauth.notConfigured')}</p>
+          <button
+            onClick={handleEditOpen}
+            className="px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-lg hover:bg-accent-hover transition-colors"
+          >
+            {t('admin.oauth.configure')}
+          </button>
+        </div>
+      )}
+
+      {!isLoading && isConfigured && !isEditing && !showDeleteConfirm && (
+        <div className="border border-border rounded-xl p-4 space-y-3">
+          <InfoRow label={t('admin.oauth.clientId')} value={oauthSettings.client_id} />
+          <InfoRow label={t('admin.oauth.redirectUri')} value={oauthSettings.redirect_uri} />
+          <InfoRow label={t('admin.oauth.secretMasked')} value={oauthSettings.secret_masked} />
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={handleEditOpen}
+              className="px-3 py-1.5 text-xs font-medium border border-border rounded-lg hover:bg-bg-hover text-text-secondary transition-colors"
+            >
+              {t('admin.oauth.edit')}
+            </button>
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="px-3 py-1.5 text-xs font-medium border border-danger/30 rounded-lg hover:bg-danger/5 text-danger transition-colors"
+            >
+              {t('common.delete')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showDeleteConfirm && (
+        <div className="border border-danger/30 rounded-xl p-4 space-y-3 bg-danger/5">
+          <p className="text-sm text-text-primary">{t('admin.oauth.deleteConfirm')}</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => deleteMutation.mutate()}
+              disabled={deleteMutation.isPending}
+              className="px-3 py-1.5 text-xs font-medium bg-danger text-white rounded-lg hover:opacity-90 disabled:opacity-50 transition-colors"
+            >
+              {deleteMutation.isPending ? t('common.loading') : t('common.delete')}
+            </button>
+            <button
+              onClick={() => setShowDeleteConfirm(false)}
+              className="px-3 py-1.5 text-xs font-medium border border-border rounded-lg hover:bg-bg-hover text-text-secondary transition-colors"
+            >
+              {t('common.cancel')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {isEditing && (
+        <div className="border border-border rounded-xl p-4 space-y-3">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+              {t('admin.oauth.clientId')}
+            </label>
+            <input
+              value={editForm.client_id}
+              onChange={(e) => setEditForm((f) => ({ ...f, client_id: e.target.value }))}
+              placeholder="1234567890-abc.apps.googleusercontent.com"
+              className="w-full px-3 py-2 bg-bg-tertiary border border-border rounded-lg text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/10 transition-all"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+              {t('admin.oauth.clientSecret')}
+            </label>
+            <input
+              type="password"
+              value={editForm.client_secret}
+              onChange={(e) => setEditForm((f) => ({ ...f, client_secret: e.target.value }))}
+              placeholder="GOCSPX-..."
+              className="w-full px-3 py-2 bg-bg-tertiary border border-border rounded-lg text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/10 transition-all"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+              {t('admin.oauth.redirectUri')}
+            </label>
+            <input
+              value={editForm.redirect_uri}
+              onChange={(e) => setEditForm((f) => ({ ...f, redirect_uri: e.target.value }))}
+              className="w-full px-3 py-2 bg-bg-tertiary border border-border rounded-lg text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/10 transition-all"
+            />
+          </div>
+          {updateMutation.isError && (
+            <p className="text-xs text-danger">{t('common.error')}</p>
+          )}
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={handleSubmit}
+              disabled={updateMutation.isPending || !editForm.client_id || !editForm.client_secret}
+              className="px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-lg hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {updateMutation.isPending ? t('common.loading') : t('common.save')}
+            </button>
+            <button
+              onClick={() => setIsEditing(false)}
+              className="px-3 py-1.5 text-xs font-medium border border-border rounded-lg hover:bg-bg-hover text-text-secondary transition-colors"
+            >
+              {t('common.cancel')}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
