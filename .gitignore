@@ -52,8 +52,10 @@ postgres_dev_data/
 # Backups
 backups/
 
-# Env (allow example)
+# Env (allow example + dev/e2e)
 !.env.example
+!.env.dev
+!.env.e2e
 *.egg-info/
 .pytest_cache/
 
