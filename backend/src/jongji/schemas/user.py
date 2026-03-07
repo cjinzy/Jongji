@@ -64,10 +64,12 @@ class SetupStatusResponse(BaseModel):
     Attributes:
         setup_completed: 초기 설정 완료 여부.
         oauth_available: Google OAuth 사용 가능 여부.
+        oauth_configured: Google OAuth DB 설정 완료 여부.
     """
 
     setup_completed: bool
     oauth_available: bool
+    oauth_configured: bool = False
 
 
 class SetupAdminCreate(BaseModel):
@@ -102,12 +104,18 @@ class SetupInitRequest(BaseModel):
         admin_email: 관리자 이메일.
         admin_password: 관리자 비밀번호 (최소 8자, 대문자/숫자 포함).
         app_name: 애플리케이션 이름 (기본값: Jongji).
+        google_client_id: Google OAuth 클라이언트 ID (선택).
+        google_client_secret: Google OAuth 클라이언트 시크릿 (선택).
+        google_redirect_uri: Google OAuth 리디렉트 URI (선택).
     """
 
     admin_name: str = Field(min_length=1)
     admin_email: EmailStr
     admin_password: str = Field(min_length=8, max_length=128)
     app_name: str | None = "Jongji"
+    google_client_id: str | None = None
+    google_client_secret: str | None = None
+    google_redirect_uri: str | None = None
 
     @field_validator("admin_password")
     @classmethod
@@ -202,3 +210,33 @@ class UserRoleUpdate(BaseModel):
     """관리자 역할 변경 요청 스키마."""
 
     is_admin: bool
+
+
+class GoogleOAuthSettingsResponse(BaseModel):
+    """Google OAuth 설정 조회 응답 스키마.
+
+    Attributes:
+        client_id: Google OAuth 클라이언트 ID.
+        client_secret_masked: 마스킹된 클라이언트 시크릿.
+        redirect_uri: OAuth 리디렉트 URI.
+        is_configured: OAuth 설정 완료 여부.
+    """
+
+    client_id: str
+    client_secret_masked: str
+    redirect_uri: str
+    is_configured: bool
+
+
+class GoogleOAuthSettingsUpdate(BaseModel):
+    """Google OAuth 설정 업데이트 요청 스키마.
+
+    Attributes:
+        client_id: Google OAuth 클라이언트 ID.
+        client_secret: Google OAuth 클라이언트 시크릿 (평문).
+        redirect_uri: OAuth 리디렉트 URI.
+    """
+
+    client_id: str
+    client_secret: str
+    redirect_uri: str

@@ -21,6 +21,7 @@ from jongji.schemas.user import (
     SystemSettingsUpdate,
     UserResponse,
 )
+from jongji.services import google_oauth as google_oauth_service
 from jongji.services.auth_service import (
     check_setup_completed,
     get_user_count,
@@ -38,13 +39,16 @@ async def setup_status(db: AsyncSession = Depends(get_db)):
         db: 비동기 DB 세션.
 
     Returns:
-        SetupStatusResponse: 설정 완료 여부와 OAuth 사용 가능 여부.
+        SetupStatusResponse: 설정 완료 여부, OAuth 사용 가능 여부, OAuth DB 설정 완료 여부.
     """
     completed = await check_setup_completed(db)
-    oauth_available = bool(settings.GOOGLE_CLIENT_ID)
+    oauth_config = await google_oauth_service.get_oauth_config(db)
+    oauth_configured = oauth_config is not None
+    oauth_available = oauth_configured or bool(settings.GOOGLE_CLIENT_ID)
     return SetupStatusResponse(
         setup_completed=completed,
         oauth_available=oauth_available,
+        oauth_configured=oauth_configured,
     )
 
 
@@ -96,7 +100,16 @@ async def setup_init(
         if data.app_name:
             await _upsert_setting(db, "app_name", data.app_name)
 
-        # 3. 설정 완료 표시
+        # 3. Google OAuth 설정 (선택적)
+        if data.google_client_id and data.google_client_secret and data.google_redirect_uri:
+            await google_oauth_service.save_oauth_config(
+                client_id=data.google_client_id,
+                client_secret=data.google_client_secret,
+                redirect_uri=data.google_redirect_uri,
+                db=db,
+            )
+
+        # 4. 설정 완료 표시
         await _upsert_setting(db, "setup_completed", "true")
 
         await db.commit()
