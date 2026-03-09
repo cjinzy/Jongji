@@ -66,3 +66,6 @@ Thumbs.db
 **/docs/*
 todo-jongji.md
 todo.md
+
+# E2E
+e2e/storage-state.json

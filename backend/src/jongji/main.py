@@ -15,7 +15,6 @@ from jongji.api.admin import router as admin_router
 from jongji.api.attachments import router as attachments_router
 from jongji.api.audit import router as audit_router
 from jongji.api.auth import router as auth_router
-from jongji.api.calendar import router as calendar_router
 from jongji.api.comments import router as comments_router
 from jongji.api.dashboard import router as dashboard_router
 from jongji.api.events import router as events_router
@@ -87,7 +86,6 @@ app.include_router(rss_router)
 app.include_router(attachments_router)
 app.include_router(export_router)
 app.include_router(dashboard_router)
-app.include_router(calendar_router)
 app.mount("/mcp", mcp.http_app())
 
 # E2E 테스트 전용 라우터 (E2E_TESTING=true일 때만 활성화)
