@@ -15,6 +15,7 @@
 # Environment
 .env
 .env.local
+.credentials
 
 # OS
 .DS_Store
