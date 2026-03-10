@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from jongji.api.deps import get_current_user, get_db
+from jongji.api.deps import get_db, require_project_access
 from jongji.models.user import User
 from jongji.schemas.tag import TagResponse, TagTasksResponse
 from jongji.services import tag_service
@@ -21,7 +21,7 @@ router = APIRouter(prefix="/api/v1/tags", tags=["tags"])
 @router.get("", response_model=list[TagResponse])
 async def list_tags(
     project_id: uuid.UUID,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_project_access),
     db: AsyncSession = Depends(get_db),
 ):
     """프로젝트 내 태그 목록을 사용 횟수와 함께 반환합니다.
@@ -49,7 +49,7 @@ async def list_tags(
 async def get_tasks_by_tag(
     tag: str,
     project_id: uuid.UUID,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_project_access),
     db: AsyncSession = Depends(get_db),
 ):
     """특정 태그가 붙은 작업 목록을 반환합니다.

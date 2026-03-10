@@ -10,7 +10,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from jongji.api.deps import get_current_user, get_db, require_project_access
+from jongji.api.deps import get_current_user, get_db, require_project_access, require_team_member
+from jongji.models.team import TeamMember
 from jongji.models.user import User
 from jongji.schemas.project import (
     ProjectCreate,
@@ -30,6 +31,7 @@ async def list_projects(
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
     current_user: User = Depends(get_current_user),
+    _membership: TeamMember | None = Depends(require_team_member),
     db: AsyncSession = Depends(get_db),
 ):
     """팀에 속한 활성 프로젝트 목록을 반환합니다."""
@@ -44,6 +46,19 @@ async def create_project(
     db: AsyncSession = Depends(get_db),
 ):
     """새 프로젝트를 생성합니다. 생성자는 자동으로 리더로 등록됩니다."""
+    # team_id가 request body에 있으므로 인라인으로 팀 멤버십 검증
+    from sqlalchemy import select
+
+    from jongji.models.team import Team
+
+    team_result = await db.execute(select(Team).where(Team.id == data.team_id))
+    if not team_result.scalar_one_or_none():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="팀을 찾을 수 없습니다.")
+    member_result = await db.execute(
+        select(TeamMember).where(TeamMember.team_id == data.team_id, TeamMember.user_id == current_user.id)
+    )
+    if not member_result.scalar_one_or_none() and not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="해당 리소스에 대한 접근 권한이 없습니다.")
     try:
         project = await project_service.create_project(data, current_user.id, db)
         await db.commit()
@@ -66,6 +81,14 @@ async def get_project_by_slug(
     project = await project_service.get_project_by_slug(team_slug, project_slug, db)
     if not project:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="프로젝트를 찾을 수 없습니다.")
+    # 팀 멤버십 검증
+    from sqlalchemy import select
+
+    member_result = await db.execute(
+        select(TeamMember).where(TeamMember.team_id == project.team_id, TeamMember.user_id == current_user.id)
+    )
+    if not member_result.scalar_one_or_none() and not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="해당 리소스에 대한 접근 권한이 없습니다.")
     return ProjectResponse.model_validate(project)
 
 

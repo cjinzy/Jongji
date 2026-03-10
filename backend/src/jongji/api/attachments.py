@@ -13,10 +13,12 @@ from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from jongji.api.deps import get_current_user
+from jongji.api.deps import get_current_user, require_task_access
 from jongji.database import get_db
 from jongji.models.attachment import Attachment
+from jongji.models.project import Project
 from jongji.models.task import Task
+from jongji.models.team import TeamMember
 from jongji.models.user import User
 from jongji.schemas.attachment import AttachmentResponse
 from jongji.services.storage import get_storage
@@ -87,7 +89,7 @@ def _attachment_to_response(attachment: Attachment) -> AttachmentResponse:
 async def upload_task_attachment(
     task_id: uuid.UUID,
     file: UploadFile,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_task_access),
     db: AsyncSession = Depends(get_db),
 ) -> AttachmentResponse:
     """업무에 파일을 첨부합니다.
@@ -248,6 +250,20 @@ async def download_attachment(
     if not attachment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="첨부파일을 찾을 수 없습니다.")
 
+    # 팀 멤버십 검증 (attachment → task → project → team)
+    if attachment.task_id:
+        task_result = await db.execute(select(Task).where(Task.id == attachment.task_id))
+        task = task_result.scalar_one_or_none()
+        if task:
+            proj_result = await db.execute(select(Project).where(Project.id == task.project_id))
+            project = proj_result.scalar_one_or_none()
+            if project:
+                member_result = await db.execute(
+                    select(TeamMember).where(TeamMember.team_id == project.team_id, TeamMember.user_id == user.id)
+                )
+                if not member_result.scalar_one_or_none() and not user.is_admin:
+                    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="해당 리소스에 대한 접근 권한이 없습니다.")
+
     file_path = Path(attachment.storage_path)
     if not file_path.is_absolute():
         from jongji.config import settings
@@ -286,6 +302,20 @@ async def delete_attachment(
     attachment = result.scalar_one_or_none()
     if not attachment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="첨부파일을 찾을 수 없습니다.")
+
+    # 팀 멤버십 검증 (attachment → task → project → team)
+    if attachment.task_id:
+        task_result = await db.execute(select(Task).where(Task.id == attachment.task_id))
+        task = task_result.scalar_one_or_none()
+        if task:
+            proj_result = await db.execute(select(Project).where(Project.id == task.project_id))
+            project = proj_result.scalar_one_or_none()
+            if project:
+                member_result = await db.execute(
+                    select(TeamMember).where(TeamMember.team_id == project.team_id, TeamMember.user_id == user.id)
+                )
+                if not member_result.scalar_one_or_none() and not user.is_admin:
+                    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="해당 리소스에 대한 접근 권한이 없습니다.")
 
     if attachment.uploaded_by != user.id:
         raise HTTPException(

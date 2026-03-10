@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from jongji.api.deps import get_current_user, get_db
+from jongji.api.deps import get_db, require_project_access, require_template_access
 from jongji.api.tasks import _task_to_response
 from jongji.models.user import User
 from jongji.schemas.task import TaskResponse
@@ -23,7 +23,7 @@ router = APIRouter(tags=["templates"])
 @router.get("/api/v1/projects/{project_id}/templates", response_model=list[TemplateResponse])
 async def list_templates(
     project_id: UUID,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_project_access),
     db: AsyncSession = Depends(get_db),
 ):
     """프로젝트의 작업 템플릿 목록을 반환합니다."""
@@ -38,7 +38,7 @@ async def list_templates(
 async def create_template(
     project_id: UUID,
     data: TemplateCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_project_access),
     db: AsyncSession = Depends(get_db),
 ):
     """새 작업 템플릿을 생성합니다."""
@@ -60,7 +60,7 @@ async def create_template(
 async def update_template(
     template_id: UUID,
     data: TemplateUpdate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_template_access),
     db: AsyncSession = Depends(get_db),
 ):
     """작업 템플릿을 수정합니다."""
@@ -81,7 +81,7 @@ async def update_template(
 @router.delete("/api/v1/templates/{template_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_template(
     template_id: UUID,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_template_access),
     db: AsyncSession = Depends(get_db),
 ):
     """작업 템플릿을 삭제합니다."""
@@ -105,7 +105,7 @@ async def delete_template(
 )
 async def create_task_from_template(
     template_id: UUID,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_template_access),
     db: AsyncSession = Depends(get_db),
 ):
     """템플릿을 기반으로 작업을 생성합니다."""

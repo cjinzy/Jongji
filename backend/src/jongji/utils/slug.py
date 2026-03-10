@@ -19,7 +19,7 @@ def generate_slug(name: str) -> str:
     # NFD -> NFC 정규화
     slug = unicodedata.normalize("NFC", name.strip().lower())
     # 알파벳, 숫자, 한글, 하이픈만 유지
-    slug = re.sub(r"[^\w가-힣-]", "-", slug)
+    slug = re.sub(r"[^a-z0-9가-힣-]", "-", slug)
     # 연속 하이픈 제거
     slug = re.sub(r"-+", "-", slug)
     # 앞뒤 하이픈 제거

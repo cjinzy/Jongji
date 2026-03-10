@@ -15,6 +15,12 @@ import { teamsApi } from '../api/teams'
 import { useTeamStore } from '../stores/team'
 import { TeamSelector } from './TeamSelector'
 
+/** Prefetch DashboardPage (recharts 391 KB) on hover so the bundle is ready
+ *  before the user actually navigates to a project's dashboard tab. */
+function prefetchDashboard() {
+  import('../pages/DashboardPage')
+}
+
 function NavItem({
   to,
   icon: Icon,
@@ -109,6 +115,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
                 <NavLink
                   to={`/project/${project.id}`}
                   title={collapsed ? project.name : undefined}
+                  onMouseEnter={prefetchDashboard}
                   className={({ isActive }) =>
                     `relative flex items-center rounded-md transition-colors duration-150 ${
                       collapsed ? 'justify-center px-0 py-2' : 'gap-2.5 px-3 py-1.5 text-sm'
@@ -157,6 +164,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
               <NavLink
                 to={`/project/${project.id}`}
                 title={collapsed ? project.name : undefined}
+                onMouseEnter={prefetchDashboard}
                 className={({ isActive }) =>
                   `relative flex items-center rounded-md transition-colors duration-150 ${
                     collapsed ? 'justify-center px-0 py-2' : 'gap-2.5 px-3 py-1.5 text-sm'

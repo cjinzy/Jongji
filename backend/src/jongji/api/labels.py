@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from jongji.api.deps import get_current_user, get_db
+from jongji.api.deps import get_db, require_label_access, require_project_access
 from jongji.models.user import User
 from jongji.schemas.project import LabelCreate, LabelResponse, LabelUpdate
 from jongji.services import label_service
@@ -23,7 +23,7 @@ router = APIRouter(tags=["labels"])
 @router.get("/api/v1/projects/{project_id}/labels", response_model=list[LabelResponse])
 async def list_labels(
     project_id: UUID,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_project_access),
     db: AsyncSession = Depends(get_db),
 ):
     """프로젝트의 모든 라벨을 반환합니다."""
@@ -35,7 +35,7 @@ async def list_labels(
 async def create_label(
     project_id: UUID,
     data: LabelCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_project_access),
     db: AsyncSession = Depends(get_db),
 ):
     """프로젝트에 새 라벨을 생성합니다."""
@@ -54,7 +54,7 @@ async def create_label(
 async def update_label(
     label_id: UUID,
     data: LabelUpdate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_label_access),
     db: AsyncSession = Depends(get_db),
 ):
     """라벨을 수정합니다."""
@@ -72,7 +72,7 @@ async def update_label(
 @router.delete("/api/v1/labels/{label_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_label(
     label_id: UUID,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_label_access),
     db: AsyncSession = Depends(get_db),
 ):
     """라벨을 삭제합니다."""

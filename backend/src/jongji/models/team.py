@@ -9,19 +9,21 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from jongji.database import Base
 from jongji.models.enums import TeamRole
+from jongji.utils.slug import generate_slug
 
 
 class Team(Base):
     """팀 모델.
 
     프로젝트를 그룹화하는 조직 단위로, 생성자와 보관 상태를 관리합니다.
+    slug는 name에서 자동 생성됩니다.
     """
 
     __tablename__ = "teams"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String, nullable=False)
-    slug: Mapped[str] = mapped_column(String, nullable=False, index=True, unique=True)
+    slug: Mapped[str] = mapped_column(String, nullable=False, index=True, unique=True, default="")
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_archived: Mapped[bool] = mapped_column(Boolean, default=False)
     created_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
@@ -33,6 +35,12 @@ class Team(Base):
         default=lambda: datetime.now(UTC),
         onupdate=lambda: datetime.now(UTC),
     )
+
+    def __init__(self, **kwargs):
+        """slug가 제공되지 않으면 name에서 자동 생성합니다."""
+        if "slug" not in kwargs and "name" in kwargs:
+            kwargs["slug"] = generate_slug(kwargs["name"])
+        super().__init__(**kwargs)
 
     # Relationships
     members: Mapped[list["TeamMember"]] = relationship(back_populates="team", cascade="all, delete-orphan")

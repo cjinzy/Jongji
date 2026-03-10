@@ -9,12 +9,14 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from jongji.database import Base
 from jongji.models.enums import ProjectRole
+from jongji.utils.slug import generate_slug
 
 
 class Project(Base):
     """프로젝트 모델.
 
     팀에 속한 프로젝트를 나타내며, 고유 키와 작업 카운터를 관리합니다.
+    slug는 name에서 자동 생성됩니다.
     """
 
     __tablename__ = "projects"
@@ -26,7 +28,7 @@ class Project(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     team_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("teams.id"), nullable=False)
     name: Mapped[str] = mapped_column(String, nullable=False)
-    slug: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    slug: Mapped[str] = mapped_column(String, nullable=False, index=True, default="")
     key: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_private: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -41,6 +43,12 @@ class Project(Base):
         default=lambda: datetime.now(UTC),
         onupdate=lambda: datetime.now(UTC),
     )
+
+    def __init__(self, **kwargs):
+        """slug가 제공되지 않으면 name에서 자동 생성합니다."""
+        if "slug" not in kwargs and "name" in kwargs:
+            kwargs["slug"] = generate_slug(kwargs["name"])
+        super().__init__(**kwargs)
 
     # Relationships
     team: Mapped["Team"] = relationship(foreign_keys=[team_id])  # noqa: F821

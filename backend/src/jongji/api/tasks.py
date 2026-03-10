@@ -11,7 +11,7 @@ from loguru import logger
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from jongji.api.deps import get_current_user
+from jongji.api.deps import get_current_user, require_project_access, require_task_access
 from jongji.database import get_db
 from jongji.models.enums import TaskStatus
 from jongji.models.task import TaskHistory, TaskRelation
@@ -94,6 +94,7 @@ async def list_tasks(
     limit: int = Query(20, ge=1, le=100),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_project_access),
 ) -> CursorPage[TaskResponse]:
     """프로젝트 작업 목록을 조회합니다.
 
@@ -134,6 +135,7 @@ async def create_task(
     data: TaskCreate,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_project_access),
 ) -> TaskResponse:
     """새 작업을 생성합니다.
 
@@ -162,7 +164,7 @@ async def create_task(
 @router.get("/api/v1/tasks/{task_id}")
 async def get_task(
     task_id: uuid.UUID,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_task_access),
     db: AsyncSession = Depends(get_db),
 ) -> TaskResponse:
     """작업 상세를 조회합니다.
@@ -188,7 +190,7 @@ async def get_task(
 async def update_task(
     task_id: uuid.UUID,
     data: TaskUpdate,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_task_access),
     db: AsyncSession = Depends(get_db),
 ) -> TaskResponse:
     """작업을 수정합니다.
@@ -220,7 +222,7 @@ async def update_task(
 @router.delete("/api/v1/tasks/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_task(
     task_id: uuid.UUID,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_task_access),
     db: AsyncSession = Depends(get_db),
 ) -> None:
     """작업을 보관 처리합니다.
@@ -252,7 +254,7 @@ async def delete_task(
 @router.post("/api/v1/tasks/{task_id}/clone", status_code=status.HTTP_201_CREATED)
 async def clone_task(
     task_id: uuid.UUID,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_task_access),
     db: AsyncSession = Depends(get_db),
 ) -> TaskCloneResponse:
     """작업을 복제합니다.
@@ -283,7 +285,7 @@ async def clone_task(
 async def update_task_status(
     task_id: uuid.UUID,
     data: TaskStatusUpdate,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_task_access),
     db: AsyncSession = Depends(get_db),
 ) -> TaskResponse:
     """작업 상태를 전환합니다.
@@ -361,7 +363,7 @@ async def update_task_status(
 async def add_task_relation(
     task_id: uuid.UUID,
     data: TaskRelationCreate,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_task_access),
     db: AsyncSession = Depends(get_db),
 ) -> TaskRelationResponse:
     """작업에 blocked_by 관계를 추가합니다.
@@ -434,7 +436,7 @@ async def add_task_relation(
 async def remove_task_relation(
     task_id: uuid.UUID,
     blocker_id: uuid.UUID,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_task_access),
     db: AsyncSession = Depends(get_db),
 ) -> None:
     """작업의 blocked_by 관계를 삭제합니다.

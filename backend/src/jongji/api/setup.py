@@ -3,9 +3,10 @@
 초기 설정 마법사의 상태 확인, 관리자 생성, 시스템 설정, 완료 처리를 제공합니다.
 """
 
+import hmac
 import traceback
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from loguru import logger
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,12 +17,10 @@ from jongji.models.system import SystemSetting
 from jongji.models.user import User
 from jongji.schemas.user import (
     SetupAdminCreate,
-    SetupInitRequest,
     SetupStatusResponse,
     SystemSettingsUpdate,
     UserResponse,
 )
-from jongji.services import google_oauth as google_oauth_service
 from jongji.services.auth_service import (
     check_setup_completed,
     get_user_count,
@@ -29,6 +28,40 @@ from jongji.services.auth_service import (
 )
 
 router = APIRouter(prefix="/setup", tags=["setup"])
+
+
+async def verify_setup_token(
+    authorization: str | None = Header(None),
+) -> None:
+    """Setup 엔드포인트 접근 시 SETUP_TOKEN 환경변수와 Bearer 토큰을 비교합니다.
+
+    SETUP_TOKEN이 미설정이면 Setup POST 엔드포인트를 완전 차단합니다.
+
+    Args:
+        authorization: Authorization 헤더 값.
+
+    Raises:
+        HTTPException: 토큰 미설정(503) 또는 불일치(403).
+    """
+    if not settings.SETUP_TOKEN:
+        logger.warning("SETUP_TOKEN 환경변수가 설정되지 않았습니다. Setup 엔드포인트가 차단됩니다.")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="SETUP_TOKEN 환경변수를 설정해주세요.",
+        )
+
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Setup 토큰이 필요합니다.",
+        )
+
+    provided_token = authorization[len("Bearer "):]
+    if not hmac.compare_digest(provided_token, settings.SETUP_TOKEN):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Setup 토큰이 올바르지 않습니다.",
+        )
 
 
 @router.get("/status", response_model=SetupStatusResponse)
@@ -39,90 +72,17 @@ async def setup_status(db: AsyncSession = Depends(get_db)):
         db: 비동기 DB 세션.
 
     Returns:
-        SetupStatusResponse: 설정 완료 여부, OAuth 사용 가능 여부, OAuth DB 설정 완료 여부.
+        SetupStatusResponse: 설정 완료 여부와 OAuth 사용 가능 여부.
     """
     completed = await check_setup_completed(db)
-    oauth_config = await google_oauth_service.get_oauth_config(db)
-    oauth_configured = oauth_config is not None
-    oauth_available = oauth_configured or bool(settings.GOOGLE_CLIENT_ID)
+    oauth_available = bool(settings.GOOGLE_CLIENT_ID)
     return SetupStatusResponse(
         setup_completed=completed,
         oauth_available=oauth_available,
-        oauth_configured=oauth_configured,
     )
 
 
-@router.post("/init", status_code=status.HTTP_201_CREATED)
-async def setup_init(
-    data: SetupInitRequest,
-    db: AsyncSession = Depends(get_db),
-):
-    """초기 설정 원스텝 완료 (프론트엔드 SetupPage용).
-
-    관리자 생성 → 앱 이름 설정 → setup_completed=true를 하나의 트랜잭션으로 처리합니다.
-
-    Args:
-        data: 초기 설정 요청 데이터 (관리자 정보 + 앱 이름).
-        db: 비동기 DB 세션.
-
-    Returns:
-        dict: 성공 메시지.
-    """
-    # Advisory lock으로 동시 요청 방지
-    await db.execute(text("SELECT pg_advisory_xact_lock(42)"))
-
-    completed = await check_setup_completed(db)
-    if completed:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Setup already completed",
-        )
-
-    user_count = await get_user_count(db)
-    if user_count > 0:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Admin user already exists",
-        )
-
-    try:
-        # 1. 관리자 생성
-        admin = User(
-            email=data.admin_email,
-            name=data.admin_name,
-            password_hash=await hash_password(data.admin_password),
-            is_admin=True,
-        )
-        db.add(admin)
-        await db.flush()
-
-        # 2. 앱 이름 설정
-        if data.app_name:
-            await _upsert_setting(db, "app_name", data.app_name)
-
-        # 3. Google OAuth 설정 (선택적)
-        if data.google_client_id and data.google_client_secret and data.google_redirect_uri:
-            await google_oauth_service.save_oauth_config(
-                client_id=data.google_client_id,
-                client_secret=data.google_client_secret,
-                redirect_uri=data.google_redirect_uri,
-                db=db,
-            )
-
-        # 4. 설정 완료 표시
-        await _upsert_setting(db, "setup_completed", "true")
-
-        await db.commit()
-    except HTTPException:
-        raise
-    except Exception:
-        logger.error(f"Failed to initialize setup: {traceback.format_exc()}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    return {"detail": "Setup completed successfully"}
-
-
-@router.post("/admin", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/admin", response_model=UserResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(verify_setup_token)])
 async def create_setup_admin(
     data: SetupAdminCreate,
     db: AsyncSession = Depends(get_db),
@@ -172,7 +132,7 @@ async def create_setup_admin(
     return UserResponse.model_validate(admin)
 
 
-@router.post("/settings")
+@router.post("/settings", dependencies=[Depends(verify_setup_token)])
 async def save_setup_settings(
     data: SystemSettingsUpdate,
     db: AsyncSession = Depends(get_db),
@@ -209,7 +169,7 @@ async def save_setup_settings(
     return {"detail": "Settings saved"}
 
 
-@router.post("/complete")
+@router.post("/complete", dependencies=[Depends(verify_setup_token)])
 async def complete_setup(db: AsyncSession = Depends(get_db)):
     """초기 설정을 완료합니다.
 

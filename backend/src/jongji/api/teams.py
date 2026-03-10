@@ -105,6 +105,16 @@ async def get_team_by_slug(
     team = await team_service.get_team_by_slug(team_slug, db)
     if not team:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="팀을 찾을 수 없습니다.")
+    # 팀 멤버십 검증
+    from sqlalchemy import select
+
+    from jongji.models.team import TeamMember
+
+    member_result = await db.execute(
+        select(TeamMember).where(TeamMember.team_id == team.id, TeamMember.user_id == current_user.id)
+    )
+    if not member_result.scalar_one_or_none() and not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="해당 리소스에 대한 접근 권한이 없습니다.")
     members = await team_service.get_members(team.id, db)
     return _build_team_response(team, len(members))
 

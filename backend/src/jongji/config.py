@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     # CORS
     CORS_ORIGINS: list[str] = ["http://localhost:5173"]
 
+    # Setup
+    SETUP_TOKEN: str | None = None
+
     # App
     APP_NAME: str = "Jongji"
 

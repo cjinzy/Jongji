@@ -11,8 +11,10 @@ from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from jongji.api.deps import get_current_user, get_db
+from jongji.api.deps import get_current_user, get_db, require_task_access
+from jongji.models.project import Project
 from jongji.models.task import Task, TaskComment
+from jongji.models.team import TeamMember
 from jongji.models.user import User
 from jongji.schemas.comment import CommentCreate, CommentResponse, CommentUpdate
 from jongji.services import comment_service
@@ -25,7 +27,7 @@ async def list_comments(
     task_id: UUID,
     limit: int = Query(100, ge=1, le=200),
     offset: int = Query(0, ge=0),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_task_access),
     db: AsyncSession = Depends(get_db),
 ):
     """작업의 댓글 목록을 반환합니다."""
@@ -45,7 +47,7 @@ async def list_comments(
 async def create_comment(
     task_id: UUID,
     data: CommentCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_task_access),
     db: AsyncSession = Depends(get_db),
 ):
     """작업에 댓글을 작성합니다. @mention된 사용자는 자동으로 감시자로 등록됩니다."""
@@ -79,6 +81,19 @@ async def update_comment(
     if not comment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="댓글을 찾을 수 없습니다.")
 
+    # 팀 멤버십 검증 (comment → task → project → team)
+    task_result = await db.execute(select(Task).where(Task.id == comment.task_id))
+    task = task_result.scalar_one_or_none()
+    if task:
+        proj_result = await db.execute(select(Project).where(Project.id == task.project_id))
+        project = proj_result.scalar_one_or_none()
+        if project:
+            member_result = await db.execute(
+                select(TeamMember).where(TeamMember.team_id == project.team_id, TeamMember.user_id == current_user.id)
+            )
+            if not member_result.scalar_one_or_none() and not current_user.is_admin:
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="해당 리소스에 대한 접근 권한이 없습니다.")
+
     if comment.user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="댓글 수정 권한이 없습니다.")
 
@@ -107,6 +122,19 @@ async def delete_comment(
     comment = comment_result.scalar_one_or_none()
     if not comment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="댓글을 찾을 수 없습니다.")
+
+    # 팀 멤버십 검증 (comment → task → project → team)
+    task_result = await db.execute(select(Task).where(Task.id == comment.task_id))
+    task = task_result.scalar_one_or_none()
+    if task:
+        proj_result = await db.execute(select(Project).where(Project.id == task.project_id))
+        project = proj_result.scalar_one_or_none()
+        if project:
+            member_result = await db.execute(
+                select(TeamMember).where(TeamMember.team_id == project.team_id, TeamMember.user_id == current_user.id)
+            )
+            if not member_result.scalar_one_or_none() and not current_user.is_admin:
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="해당 리소스에 대한 접근 권한이 없습니다.")
 
     if comment.user_id != current_user.id and not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="댓글 삭제 권한이 없습니다.")

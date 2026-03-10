@@ -6,7 +6,19 @@
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from jongji.config import settings
 from jongji.main import app
+
+TEST_SETUP_TOKEN = "test-setup-token-for-ci"
+
+
+@pytest.fixture(autouse=True)
+def _set_setup_token():
+    """테스트 동안 SETUP_TOKEN 환경변수를 설정합니다."""
+    original = settings.SETUP_TOKEN
+    settings.SETUP_TOKEN = TEST_SETUP_TOKEN
+    yield
+    settings.SETUP_TOKEN = original
 
 
 @pytest.fixture
@@ -31,6 +43,11 @@ async def client(db_session):
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.clear()
+
+
+def _setup_headers() -> dict[str, str]:
+    """Setup 토큰이 포함된 헤더를 반환합니다."""
+    return {"Authorization": f"Bearer {TEST_SETUP_TOKEN}"}
 
 
 class TestSetupStatus:
@@ -63,6 +80,7 @@ class TestSetupAdmin:
                 "password": "AdminPass123",
                 "name": "Admin",
             },
+            headers=_setup_headers(),
         )
         assert resp.status_code == 201
         data = resp.json()
@@ -78,6 +96,7 @@ class TestSetupAdmin:
                 "password": "AdminPass123",
                 "name": "Admin1",
             },
+            headers=_setup_headers(),
         )
         resp = await client.post(
             "/api/v1/setup/admin",
@@ -86,6 +105,7 @@ class TestSetupAdmin:
                 "password": "AdminPass123",
                 "name": "Admin2",
             },
+            headers=_setup_headers(),
         )
         assert resp.status_code == 409
 
@@ -98,8 +118,34 @@ class TestSetupAdmin:
                 "password": "short",
                 "name": "Admin",
             },
+            headers=_setup_headers(),
         )
         assert resp.status_code == 422
+
+    async def test_create_admin_without_token(self, client):
+        """Setup 토큰 없이 관리자 생성 시도 시 401 반환."""
+        resp = await client.post(
+            "/api/v1/setup/admin",
+            json={
+                "email": "admin@example.com",
+                "password": "AdminPass123",
+                "name": "Admin",
+            },
+        )
+        assert resp.status_code == 401
+
+    async def test_create_admin_wrong_token(self, client):
+        """잘못된 Setup 토큰으로 관리자 생성 시도 시 403 반환."""
+        resp = await client.post(
+            "/api/v1/setup/admin",
+            json={
+                "email": "admin@example.com",
+                "password": "AdminPass123",
+                "name": "Admin",
+            },
+            headers={"Authorization": "Bearer wrong-token"},
+        )
+        assert resp.status_code == 403
 
 
 class TestSetupSettings:
@@ -114,6 +160,7 @@ class TestSetupSettings:
                 "timezone": "Asia/Seoul",
                 "default_locale": "ko",
             },
+            headers=_setup_headers(),
         )
         assert resp.status_code == 200
 
@@ -127,12 +174,14 @@ class TestSetupSettings:
                 "password": "AdminPass123",
                 "name": "Admin",
             },
+            headers=_setup_headers(),
         )
-        await client.post("/api/v1/setup/complete")
+        await client.post("/api/v1/setup/complete", headers=_setup_headers())
         # 완료 후 설정 변경 시도
         resp = await client.post(
             "/api/v1/setup/settings",
             json={"app_name": "Changed"},
+            headers=_setup_headers(),
         )
         assert resp.status_code == 403
 
@@ -216,6 +265,7 @@ class TestSetupComplete:
                 "password": "AdminPass123",
                 "name": "Admin",
             },
+            headers=_setup_headers(),
         )
         await client.post(
             "/api/v1/setup/settings",
@@ -223,8 +273,9 @@ class TestSetupComplete:
                 "app_name": "MyApp",
                 "timezone": "Asia/Seoul",
             },
+            headers=_setup_headers(),
         )
-        resp = await client.post("/api/v1/setup/complete")
+        resp = await client.post("/api/v1/setup/complete", headers=_setup_headers())
         assert resp.status_code == 200
 
         # 상태 확인
@@ -233,7 +284,7 @@ class TestSetupComplete:
 
     async def test_complete_without_admin(self, client):
         """관리자 없이 설정 완료 시 400 반환."""
-        resp = await client.post("/api/v1/setup/complete")
+        resp = await client.post("/api/v1/setup/complete", headers=_setup_headers())
         assert resp.status_code == 400
 
     async def test_complete_already_completed(self, client):
@@ -245,7 +296,8 @@ class TestSetupComplete:
                 "password": "AdminPass123",
                 "name": "Admin",
             },
+            headers=_setup_headers(),
         )
-        await client.post("/api/v1/setup/complete")
-        resp = await client.post("/api/v1/setup/complete")
+        await client.post("/api/v1/setup/complete", headers=_setup_headers())
+        resp = await client.post("/api/v1/setup/complete", headers=_setup_headers())
         assert resp.status_code == 409

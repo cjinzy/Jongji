@@ -12,7 +12,7 @@ from loguru import logger
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from jongji.api.deps import get_current_user
+from jongji.api.deps import require_project_access
 from jongji.database import get_db
 from jongji.models.enums import TaskStatus
 from jongji.models.label import Label
@@ -26,6 +26,7 @@ from jongji.schemas.dashboard import (
     LabelDistributionItem,
     PriorityDistributionItem,
 )
+from jongji.utils.cache import dashboard_cache
 
 router = APIRouter(tags=["dashboard"])
 
@@ -35,7 +36,7 @@ _COMPLETED_STATUSES = {TaskStatus.DONE, TaskStatus.CLOSED}
 @router.get("/api/v1/projects/{project_id}/dashboard")
 async def get_dashboard(
     project_id: uuid.UUID,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_project_access),
     db: AsyncSession = Depends(get_db),
 ) -> DashboardResponse:
     """프로젝트 대시보드 집계 데이터를 반환합니다.
@@ -55,6 +56,12 @@ async def get_dashboard(
         HTTPException 404: 프로젝트 미존재.
         HTTPException 500: 집계 쿼리 실패.
     """
+    # 캐시 조회
+    cache_key = f"dashboard:{project_id}"
+    cached = await dashboard_cache.get(cache_key)
+    if cached:
+        return cached
+
     # 프로젝트 존재 여부 확인
     proj_result = await db.execute(select(Project).where(Project.id == project_id))
     project = proj_result.scalar_one_or_none()
@@ -184,7 +191,7 @@ async def get_dashboard(
 
         logger.info(f"대시보드 집계 완료: project={project_id}, total={total_tasks}, completed={completed_tasks}")
 
-        return DashboardResponse(
+        response = DashboardResponse(
             status_counts=status_counts,
             priority_distribution=priority_distribution,
             assignee_workload=assignee_workload,
@@ -195,6 +202,8 @@ async def get_dashboard(
             completed_tasks=completed_tasks,
             completion_rate=completion_rate,
         )
+        await dashboard_cache.set(cache_key, response)
+        return response
 
     except HTTPException:
         raise

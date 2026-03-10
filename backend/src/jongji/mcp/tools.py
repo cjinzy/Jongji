@@ -3,7 +3,6 @@
 사용자별 API Key 인증을 통해 14개의 MCP Tool을 제공합니다.
 """
 
-import hashlib
 import traceback
 import uuid
 from typing import Any
@@ -27,7 +26,7 @@ _session_factory = async_sessionmaker(_engine, expire_on_commit=False)
 async def _get_user_by_api_key(api_key: str, db: AsyncSession) -> User | None:
     """API Key로 사용자를 조회합니다.
 
-    SHA-256 해시로 key_hash와 비교하여 사용자를 반환합니다.
+    활성 API Key를 순회하며 bcrypt로 비교하여 사용자를 반환합니다.
 
     Args:
         api_key: 평문 API 키.
@@ -36,19 +35,21 @@ async def _get_user_by_api_key(api_key: str, db: AsyncSession) -> User | None:
     Returns:
         User 객체 또는 None.
     """
-    key_hash = hashlib.sha256(api_key.encode()).hexdigest()
-    result = await db.execute(
-        select(UserApiKey)
-        .where(UserApiKey.key_hash == key_hash, UserApiKey.is_active.is_(True))
-    )
-    api_key_obj = result.scalar_one_or_none()
-    if not api_key_obj:
-        return None
+    from jongji.services.auth_service import verify_password
 
-    user_result = await db.execute(
-        select(User).where(User.id == api_key_obj.user_id, User.is_active.is_(True))
+    result = await db.execute(
+        select(UserApiKey).where(UserApiKey.is_active.is_(True))
     )
-    return user_result.scalar_one_or_none()
+    api_keys = result.scalars().all()
+
+    for api_key_obj in api_keys:
+        if await verify_password(api_key, api_key_obj.key_hash):
+            user_result = await db.execute(
+                select(User).where(User.id == api_key_obj.user_id, User.is_active.is_(True))
+            )
+            return user_result.scalar_one_or_none()
+
+    return None
 
 
 async def _require_user(api_key: str, db: AsyncSession) -> User:
