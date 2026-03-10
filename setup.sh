@@ -2,7 +2,7 @@
 # setup.sh — Jongji 초기 설정 스크립트.
 #
 # 프로젝트 루트에서 실행:
-#   bash scripts/setup.sh
+#   bash setup.sh
 #
 # 기능:
 #   - .env.example → .env 복사 (POSTGRES_PASSWORD, SECRET_KEY, SETUP_TOKEN 자동 생성)
@@ -19,7 +19,7 @@ set -euo pipefail
 
 # ── 스크립트 위치 기준으로 프로젝트 루트 결정 ──────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+PROJECT_ROOT="${SCRIPT_DIR}"
 
 ENV_EXAMPLE="${PROJECT_ROOT}/.env.example"
 ENV_FILE="${PROJECT_ROOT}/.env"
