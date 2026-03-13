@@ -32,11 +32,30 @@ def _generate_slug(name: str) -> str:
     return slug or "untitled"
 
 
+def _column_exists(table: str, column: str) -> bool:
+    """테이블에 컬럼이 존재하는지 확인합니다."""
+    conn = op.get_bind()
+    result = conn.execute(
+        sa.text(
+            "SELECT 1 FROM information_schema.columns "
+            "WHERE table_name = :table AND column_name = :column"
+        ),
+        {"table": table, "column": column},
+    ).fetchone()
+    return result is not None
+
+
 def upgrade() -> None:
     """slug 컬럼을 teams, projects 테이블에 추가합니다."""
+    # 0000 초기 마이그레이션에서 이미 slug이 포함된 경우 건너뜀
+    if _column_exists("teams", "slug") and _column_exists("projects", "slug"):
+        return
+
     # Step 1: nullable=True로 컬럼 추가
-    op.add_column("teams", sa.Column("slug", sa.String(), nullable=True))
-    op.add_column("projects", sa.Column("slug", sa.String(), nullable=True))
+    if not _column_exists("teams", "slug"):
+        op.add_column("teams", sa.Column("slug", sa.String(), nullable=True))
+    if not _column_exists("projects", "slug"):
+        op.add_column("projects", sa.Column("slug", sa.String(), nullable=True))
 
     # Step 2: 기존 데이터에 slug 생성
     conn = op.get_bind()
