@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     # Google OAuth
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
-    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/v1/auth/google/callback"
+    GOOGLE_REDIRECT_URI: str = "http://localhost:8888/api/v1/auth/google/callback"
 
     # CORS
     CORS_ORIGINS: list[str] = ["http://localhost:5173"]

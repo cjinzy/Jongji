@@ -39,7 +39,7 @@ def _load_config() -> dict[str, Any]:
     "--server-url",
     envvar="JONGJI_SERVER_URL",
     default=None,
-    help="서버 URL (환경변수: JONGJI_SERVER_URL, 기본: http://localhost:8000)",
+    help="서버 URL (환경변수: JONGJI_SERVER_URL, 기본: http://localhost:8888)",
 )
 @click.pass_context
 def app(ctx: click.Context, api_key: str | None, server_url: str | None) -> None:
@@ -49,7 +49,7 @@ def app(ctx: click.Context, api_key: str | None, server_url: str | None) -> None
     config = _load_config()
 
     resolved_api_key = api_key or config.get("api_key")
-    resolved_server_url = server_url or config.get("server_url", "http://localhost:8000")
+    resolved_server_url = server_url or config.get("server_url", "http://localhost:8888")
 
     if not resolved_api_key:
         click.echo(

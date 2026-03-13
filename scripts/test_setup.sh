@@ -183,7 +183,7 @@ cat > "${TEST_DIR}/.credentials" <<CRED
   Password: ${POSTGRES_PASSWORD}
 
 [Admin Account]
-  Email:    admin@jongji.local
+  Email:    admin@jongji.app
   Name:     administrator
   Password: ${ADMIN_PASSWORD}
 
@@ -196,7 +196,7 @@ chmod 600 "${TEST_DIR}/.credentials"
 assert_true ".credentials 파일 존재" test -f "${TEST_DIR}/.credentials"
 assert_true ".credentials에 PostgreSQL 비밀번호 포함" grep -q "${POSTGRES_PASSWORD}" "${TEST_DIR}/.credentials"
 assert_true ".credentials에 Admin 비밀번호 포함" grep -q "${ADMIN_PASSWORD}" "${TEST_DIR}/.credentials"
-assert_true ".credentials에 admin@jongji.local 포함" grep -q "admin@jongji.local" "${TEST_DIR}/.credentials"
+assert_true ".credentials에 admin@jongji.app 포함" grep -q "admin@jongji.app" "${TEST_DIR}/.credentials"
 
 CRED_PERM="$(stat -c '%a' "${TEST_DIR}/.credentials" 2>/dev/null || stat -f '%Lp' "${TEST_DIR}/.credentials" 2>/dev/null)"
 assert_eq ".credentials 파일 권한 600" "600" "${CRED_PERM}"

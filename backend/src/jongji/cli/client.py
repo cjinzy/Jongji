@@ -15,7 +15,7 @@ class JongjiClient:
         """클라이언트를 초기화합니다.
 
         Args:
-            server_url: Jongji 서버 URL (예: http://localhost:8000)
+            server_url: Jongji 서버 URL (예: http://localhost:8888)
             api_key: 인증에 사용할 API 키 (없으면 인증 없이 요청)
         """
         self.server_url = server_url.rstrip("/")

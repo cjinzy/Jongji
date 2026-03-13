@@ -20,7 +20,7 @@ services:
       target: dev
     env_file: .env.dev
     ports:
-      - "8000:8000"
+      - "8888:8000"
     volumes:
       - ./backend/src:/app/src
       - ./backend/tests:/app/tests

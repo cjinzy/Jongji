@@ -51,7 +51,7 @@ wait_for_backend() {
     local attempt=0
     echo "Backend 준비 대기 중..."
     while [ $attempt -lt $max_attempts ]; do
-        if curl -sf http://localhost:8000/api/v1/setup/status > /dev/null 2>&1; then
+        if curl -sf http://localhost:8888/api/v1/setup/status > /dev/null 2>&1; then
             echo "Backend 준비 완료."
             return 0
         fi
@@ -141,7 +141,7 @@ ADMIN_PASSWORD="$(generate_admin_password)"
 echo ""
 echo "── Docker Compose 실행 ─────────────────────────────────"
 cd "${PROJECT_ROOT}"
-docker compose up -d
+docker compose up -d --build
 
 # Backend 준비 대기
 if ! wait_for_backend; then
@@ -153,10 +153,10 @@ echo ""
 echo "── Admin 계정 생성 ─────────────────────────────────────"
 
 # POST /api/v1/setup/admin
-ADMIN_RESPONSE=$(curl -sf -w "\n%{http_code}" -X POST http://localhost:8000/api/v1/setup/admin \
+ADMIN_RESPONSE=$(curl -sf -w "\n%{http_code}" -X POST http://localhost:8888/api/v1/setup/admin \
     -H "Authorization: Bearer ${SETUP_TOKEN}" \
     -H "Content-Type: application/json" \
-    -d "{\"email\":\"admin@jongji.local\",\"password\":\"${ADMIN_PASSWORD}\",\"name\":\"administrator\"}")
+    -d "{\"email\":\"admin@jongji.app\",\"password\":\"${ADMIN_PASSWORD}\",\"name\":\"administrator\"}")
 
 ADMIN_HTTP_CODE=$(echo "$ADMIN_RESPONSE" | tail -1)
 ADMIN_BODY=$(echo "$ADMIN_RESPONSE" | sed '$d')
@@ -170,7 +170,7 @@ else
 fi
 
 # POST /api/v1/setup/complete
-COMPLETE_RESPONSE=$(curl -sf -w "\n%{http_code}" -X POST http://localhost:8000/api/v1/setup/complete \
+COMPLETE_RESPONSE=$(curl -sf -w "\n%{http_code}" -X POST http://localhost:8888/api/v1/setup/complete \
     -H "Authorization: Bearer ${SETUP_TOKEN}")
 
 COMPLETE_HTTP_CODE=$(echo "$COMPLETE_RESPONSE" | tail -1)
@@ -197,7 +197,7 @@ cat > "${CREDENTIALS_FILE}" <<CRED
   Password: ${POSTGRES_PASSWORD}
 
 [Admin Account]
-  Email:    admin@jongji.local
+  Email:    admin@jongji.app
   Name:     administrator
   Password: ${ADMIN_PASSWORD}
 

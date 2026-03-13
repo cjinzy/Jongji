@@ -153,11 +153,11 @@ export default function SetupPage() {
     if (step < 3) {
       setStep((s) => s + 1)
     } else {
-      const payload: typeof form & Record<string, unknown> = { ...form }
+      const payload: Record<string, unknown> = { ...form }
       if (!payload.google_client_id) delete payload.google_client_id
       if (!payload.google_client_secret) delete payload.google_client_secret
       if (!payload.google_client_id) delete payload.google_redirect_uri
-      submit(payload as Parameters<typeof submit>[0])
+      submit(payload as unknown as Parameters<typeof submit>[0])
     }
   }
 
