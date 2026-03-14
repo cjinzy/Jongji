@@ -12,6 +12,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from jongji.models.label import Label
 from jongji.schemas.project import LabelCreate, LabelUpdate
+from jongji.utils.safe_update import safe_update
+
+_UPDATABLE_FIELDS: frozenset[str] = frozenset({"name", "color"})
 
 
 async def create_label(project_id: uuid.UUID, data: LabelCreate, db: AsyncSession) -> Label:
@@ -88,8 +91,7 @@ async def update_label(label_id: uuid.UUID, data: LabelUpdate, db: AsyncSession)
     """
     label = await get_label(label_id, db)
     update_data = data.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(label, field, value)
+    safe_update(label, update_data, _UPDATABLE_FIELDS)
     await db.flush()
     await db.refresh(label)
     return label

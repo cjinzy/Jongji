@@ -15,7 +15,10 @@ from jongji.models.project import Project
 from jongji.models.team import Team, TeamMember
 from jongji.models.user import User
 from jongji.schemas.team import TeamUpdate
+from jongji.utils.safe_update import safe_update
 from jongji.utils.slug import generate_slug
+
+_UPDATABLE_FIELDS: frozenset[str] = frozenset({"name", "description"})
 
 
 async def _unique_team_slug(name: str, db: AsyncSession) -> str:
@@ -121,8 +124,7 @@ async def update_team(team_id: uuid.UUID, data: TeamUpdate, db: AsyncSession) ->
             raise ValueError("팀을 찾을 수 없습니다.")
 
         update_data = data.model_dump(exclude_unset=True)
-        for field, value in update_data.items():
-            setattr(team, field, value)
+        safe_update(team, update_data, _UPDATABLE_FIELDS)
 
         await db.flush()
         await db.refresh(team)

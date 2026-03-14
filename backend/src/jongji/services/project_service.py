@@ -15,7 +15,10 @@ from jongji.models.project import Project, ProjectMember
 from jongji.models.team import Team, TeamMember
 from jongji.models.user import User
 from jongji.schemas.project import ProjectCreate, ProjectMemberAdd, ProjectUpdate
+from jongji.utils.safe_update import safe_update
 from jongji.utils.slug import generate_slug
+
+_UPDATABLE_FIELDS: frozenset[str] = frozenset({"name", "description", "is_private"})
 
 
 async def _unique_project_slug(name: str, team_id: uuid.UUID, db: AsyncSession) -> str:
@@ -151,8 +154,7 @@ async def update_project(project_id: uuid.UUID, data: ProjectUpdate, db: AsyncSe
     """
     project = await get_project(project_id, db)
     update_data = data.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(project, field, value)
+    safe_update(project, update_data, _UPDATABLE_FIELDS)
     await db.flush()
     await db.refresh(project)
     return project

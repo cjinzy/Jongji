@@ -13,6 +13,11 @@ from jongji.models.task import TaskTemplate
 from jongji.schemas.task import TaskCreate
 from jongji.schemas.template import TemplateCreate, TemplateUpdate
 from jongji.services import task_service
+from jongji.utils.safe_update import safe_update
+
+_UPDATABLE_FIELDS: frozenset[str] = frozenset(
+    {"name", "title_template", "description", "priority", "tags"}
+)
 
 
 async def create_template(
@@ -100,8 +105,7 @@ async def update_template(
         raise ValueError("템플릿을 찾을 수 없습니다.")
 
     update_data = data.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(template, field, value)
+    safe_update(template, update_data, _UPDATABLE_FIELDS)
 
     await db.flush()
     await db.refresh(template)

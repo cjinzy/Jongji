@@ -16,6 +16,11 @@ from jongji.models.system import SystemSetting
 from jongji.models.user import RefreshToken, User, UserApiKey
 from jongji.schemas.user import UserUpdate
 from jongji.services.auth_service import hash_password, verify_password  # noqa: F401
+from jongji.utils.safe_update import safe_update
+
+_UPDATABLE_FIELDS: frozenset[str] = frozenset(
+    {"name", "locale", "timezone", "daily_summary_time", "dnd_start", "dnd_end", "avatar_url"}
+)
 
 
 async def get_user_by_id(user_id: uuid.UUID, db: AsyncSession) -> User | None:
@@ -44,8 +49,7 @@ async def update_user(user: User, data: UserUpdate, db: AsyncSession) -> User:
         업데이트된 User 모델.
     """
     update_data = data.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(user, field, value)
+    safe_update(user, update_data, _UPDATABLE_FIELDS)
     await db.flush()
     await db.refresh(user)
     return user
@@ -226,8 +230,13 @@ async def get_system_settings(db: AsyncSession) -> dict[str, str]:
     return {s.key: s.value for s in settings}
 
 
-async def update_system_settings(data: dict[str, str], db: AsyncSession) -> dict[str, str]:
+async def update_system_settings(
+    data: dict[str, str],
+    db: AsyncSession,
+) -> dict[str, str]:
     """시스템 설정을 업데이트합니다.
+
+    배치 쿼리로 N+1 문제를 방지합니다.
 
     Args:
         data: {key: value} 형태의 업데이트할 설정.
@@ -236,13 +245,22 @@ async def update_system_settings(data: dict[str, str], db: AsyncSession) -> dict
     Returns:
         업데이트된 전체 시스템 설정.
     """
+    if not data:
+        return await get_system_settings(db)
+
+    # 1. 배치로 기존 설정 조회 (1 쿼리)
+    existing_result = await db.execute(
+        select(SystemSetting).where(SystemSetting.key.in_(data.keys()))
+    )
+    existing_settings = {s.key: s for s in existing_result.scalars().all()}
+
+    # 2. 기존 업데이트 + 새 항목 추가
     for key, value in data.items():
-        existing = await db.execute(select(SystemSetting).where(SystemSetting.key == key))
-        setting = existing.scalar_one_or_none()
-        if setting:
-            setting.value = value
+        if key in existing_settings:
+            existing_settings[key].value = value
         else:
             db.add(SystemSetting(key=key, value=value))
+
     await db.flush()
     return await get_system_settings(db)
 

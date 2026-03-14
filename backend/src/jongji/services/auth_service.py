@@ -87,6 +87,8 @@ def create_access_token(user_id: uuid.UUID) -> str:
     to_encode = {
         "sub": str(user_id),
         "exp": expire,
+        "jti": str(uuid.uuid4()),
+        "iat": datetime.now(UTC),
     }
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
 

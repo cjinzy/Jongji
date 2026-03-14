@@ -86,7 +86,15 @@ app.include_router(rss_router)
 app.include_router(attachments_router)
 app.include_router(export_router)
 app.include_router(dashboard_router)
-app.mount("/mcp", mcp.http_app())
+mcp_app = mcp.http_app()
+mcp_app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-CSRF-Token"],
+)
+app.mount("/mcp", mcp_app)
 
 # E2E 테스트 전용 라우터 (E2E_TESTING=true일 때만 활성화)
 if os.environ.get("E2E_TESTING") == "true":
