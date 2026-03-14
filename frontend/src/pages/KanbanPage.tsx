@@ -1,5 +1,4 @@
 import { useState, useMemo, useCallback } from 'react'
-import { useParams } from 'react-router'
 import {
   DndContext,
   DragOverlay,
@@ -19,6 +18,7 @@ import { KanbanCard } from '../components/kanban/KanbanCard'
 import { TaskDetailPanel } from '../components/TaskDetailPanel'
 import { TaskCreateModal } from '../components/TaskCreateModal'
 import { useProjectTasks, useUpdateTaskStatus } from '../hooks/useTasks'
+import { useResolvedProjectId } from '../hooks/useResolvedProjectId'
 import type { Task, TaskStatus } from '../types/task'
 import { TASK_STATUSES } from '../types/task'
 
@@ -43,7 +43,7 @@ const COLUMN_CONFIG: Record<
  * Implements optimistic UI: tasks move immediately on drop, rolling back on error.
  */
 export default function KanbanPage() {
-  const { projKey: projectId = '' } = useParams()
+  const { projectId, projKey, teamId } = useResolvedProjectId()
   const { t } = useTranslation()
 
   // ---------------------------------------------------------------------------

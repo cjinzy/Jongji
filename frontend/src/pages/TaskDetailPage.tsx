@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react-router'
+import { useNavigate, useParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -11,7 +11,8 @@ import {
   ClockRegular,
   ErrorCircleRegular,
 } from '@fluentui/react-icons'
-import { getTaskApi } from '../api/tasks'
+import { getTaskByNumberApi } from '../api/tasks'
+import { useResolvedProjectId } from '../hooks/useResolvedProjectId'
 import type { TaskStatus, TaskPriority } from '../types/task'
 import { PRIORITY_LABELS } from '../types/task'
 import { formatDate } from '../utils/date'
@@ -43,18 +44,17 @@ const PRIORITY_COLOR: Record<TaskPriority, string> = {
  */
 export default function TaskDetailPage() {
   const { t } = useTranslation()
-  const { teamId = '', projKey = '', number = '' } = useParams<{
-    teamId: string
-    projKey: string
-    number: string
-  }>()
+  // projKey/teamId → UUID 변환
+  const { projectId, projKey } = useResolvedProjectId()
+  // number param은 useResolvedProjectId가 노출하지 않으므로 별도 추출
+  const { number = '' } = useParams<{ number: string }>()
   const navigate = useNavigate()
   const taskNumber = parseInt(number, 10)
 
   const { data: task, isLoading, error } = useQuery({
-    queryKey: ['task', teamId, projKey, taskNumber],
-    queryFn: () => getTaskApi(taskNumber.toString()),
-    enabled: !!taskNumber,
+    queryKey: ['task', projectId, taskNumber],
+    queryFn: () => getTaskByNumberApi(projectId, taskNumber),
+    enabled: !!projectId && !!taskNumber,
   })
 
   if (isLoading) {

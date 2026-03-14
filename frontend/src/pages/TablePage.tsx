@@ -17,6 +17,7 @@ import { FilterBar } from '../components/FilterBar'
 import { useFilters } from '../hooks/useFilters'
 import { listTasksApi, updateTaskStatusApi, updateTaskApi } from '../api/tasks'
 import { teamsApi } from '../api/teams'
+import { taskKeys } from '../hooks/useTasks'
 import type { Task, TaskStatus, TaskPriority } from '../types/task'
 import { TASK_STATUSES, PRIORITY_LABELS } from '../types/task'
 import { formatDate } from '../utils/date'
@@ -84,13 +85,11 @@ function sortTasks(tasks: Task[], key: SortKey, dir: SortDir): Task[] {
 function StatusCell({
   taskId,
   status,
-  teamId,
-  projKey,
+  projectId,
 }: {
   taskId: string
   status: TaskStatus
-  teamId: string
-  projKey: string
+  projectId: string
 }) {
   const [open, setOpen] = useState(false)
   const queryClient = useQueryClient()
@@ -102,7 +101,7 @@ function StatusCell({
       updateTaskStatusApi(taskId, { status: next }),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ['tasks', teamId, projKey],
+        queryKey: taskKeys.all(projectId),
       })
     },
   })
@@ -167,13 +166,11 @@ function StatusCell({
 function PriorityCell({
   taskId,
   priority,
-  teamId,
-  projKey,
+  projectId,
 }: {
   taskId: string
   priority: TaskPriority
-  teamId: string
-  projKey: string
+  projectId: string
 }) {
   const [open, setOpen] = useState(false)
   const queryClient = useQueryClient()
@@ -185,7 +182,7 @@ function PriorityCell({
       updateTaskApi(taskId, { priority: p }),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ['tasks', teamId, projKey],
+        queryKey: taskKeys.all(projectId),
       })
     },
   })
@@ -312,16 +309,16 @@ export default function TablePage() {
 
   const project = projects?.find((p) => p.key === projKey)
 
+  const taskListParams = {
+    status: filters.status.join(',') || undefined,
+    assignee_id: filters.assignee === 'me' ? 'me' : undefined,
+    priority: filters.priority.length === 1 ? filters.priority[0] : undefined,
+    is_archived: false,
+  }
+
   const { data: page, isLoading } = useQuery({
-    queryKey: ['tasks', teamId, projKey, filters],
-    queryFn: () =>
-      listTasksApi(project!.id, {
-        status: filters.status.join(',') || undefined,
-        assignee_id: filters.assignee === 'me' ? 'me' : undefined,
-        priority:
-          filters.priority.length === 1 ? filters.priority[0] : undefined,
-        is_archived: false,
-      }),
+    queryKey: taskKeys.list(project?.id ?? '', taskListParams),
+    queryFn: () => listTasksApi(project!.id, taskListParams),
     enabled: !!project?.id,
   })
 
@@ -435,7 +432,7 @@ export default function TablePage() {
                 <TableRow
                   key={task.id}
                   task={task}
-                  teamId={teamId}
+                  projectId={project?.id ?? ''}
                   projKey={projKey}
                   striped={idx % 2 === 1}
                   onClick={() => openTask(task.number)}
@@ -453,13 +450,13 @@ export default function TablePage() {
 
 function TableRow({
   task,
-  teamId,
+  projectId,
   projKey,
   striped,
   onClick,
 }: {
   task: Task
-  teamId: string
+  projectId: string
   projKey: string
   striped: boolean
   onClick: () => void
@@ -492,8 +489,7 @@ function TableRow({
         <StatusCell
           taskId={task.id}
           status={task.status}
-          teamId={teamId}
-          projKey={projKey}
+          projectId={projectId}
         />
       </td>
 
@@ -502,8 +498,7 @@ function TableRow({
         <PriorityCell
           taskId={task.id}
           priority={task.priority}
-          teamId={teamId}
-          projKey={projKey}
+          projectId={projectId}
         />
       </td>
 

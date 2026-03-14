@@ -1,4 +1,3 @@
-import { useParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import {
   DataHistogramRegular,
@@ -24,6 +23,7 @@ import {
   LabelList,
 } from 'recharts'
 import { useDashboard } from '../hooks/useDashboard'
+import { useResolvedProjectId } from '../hooks/useResolvedProjectId'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -538,7 +538,7 @@ function LabelChart({ labels }: LabelChartProps) {
  * priority and assignee workload bar charts.
  */
 export default function DashboardPage() {
-  const { projKey: projectId = '' } = useParams()
+  const { projectId } = useResolvedProjectId()
   const { t } = useTranslation()
   const { data, isLoading, error, refetch, isFetching } = useDashboard(projectId)
 

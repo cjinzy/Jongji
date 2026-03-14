@@ -40,6 +40,20 @@ export async function getTaskApi(taskId: string): Promise<Task> {
 }
 
 /**
+ * Fetch a task by project-scoped task number (human-readable sequential number).
+ * Preferred over getTaskApi for URL-based navigation where only the task number is known.
+ */
+export async function getTaskByNumberApi(
+  projectId: string,
+  taskNumber: number,
+): Promise<Task> {
+  const res = await apiClient.get<Task>(
+    `/projects/${projectId}/tasks/by-number/${taskNumber}`,
+  )
+  return res.data
+}
+
+/**
  * Update task fields (title, description, priority, assignee, dates).
  */
 export async function updateTaskApi(

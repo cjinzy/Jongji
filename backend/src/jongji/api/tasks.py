@@ -161,6 +161,49 @@ async def create_task(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
+@router.get("/api/v1/projects/{project_id}/tasks/by-number/{task_number}")
+async def get_task_by_number(
+    project_id: uuid.UUID,
+    task_number: int,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_project_access),
+) -> TaskResponse:
+    """프로젝트 내 작업 번호로 작업을 조회합니다.
+
+    URL 기반 작업 상세 조회 시 task number(사람이 읽기 쉬운 번호)로
+    UUID 없이 접근할 수 있도록 제공합니다.
+
+    Args:
+        project_id: 프로젝트 UUID.
+        task_number: 프로젝트 내 작업 번호.
+        user: 인증된 사용자.
+        db: DB 세션.
+
+    Returns:
+        TaskResponse: 작업 상세.
+
+    Raises:
+        HTTPException 404: 작업 미존재 시.
+    """
+    try:
+        task = await task_service.get_task_by_number(project_id, task_number, db)
+        if not task:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="작업을 찾을 수 없습니다.",
+            )
+        return _task_to_response(task)
+    except HTTPException:
+        raise
+    except Exception:
+        logger.error(f"작업 번호 조회 실패: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="작업 조회에 실패했습니다.",
+        )
+
+
 @router.get("/api/v1/tasks/{task_id}")
 async def get_task(
     task_id: uuid.UUID,

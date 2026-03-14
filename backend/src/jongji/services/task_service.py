@@ -5,6 +5,7 @@ Task CRUD, 태그 추출, 담당자 프로젝트 멤버 검증 등 비즈니스 
 
 import uuid
 
+from loguru import logger
 from sqlalchemy import and_, delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
@@ -16,6 +17,10 @@ from jongji.models.team import TeamMember
 from jongji.models.user import User
 from jongji.schemas.task import TaskCreate, TaskUpdate
 from jongji.services import tag_service
+
+_UPDATABLE_FIELDS: frozenset[str] = frozenset(
+    {"title", "description", "priority", "assignee_id", "start_date", "due_date"}
+)
 
 
 async def _verify_project_member(
@@ -121,6 +126,31 @@ async def get_task(task_id: uuid.UUID, db: AsyncSession) -> Task | None:
     return result.unique().scalar_one_or_none()
 
 
+async def get_task_by_number(
+    project_id: uuid.UUID, number: int, db: AsyncSession
+) -> Task | None:
+    """프로젝트 내 작업 번호로 작업을 조회합니다 (관계 포함).
+
+    Args:
+        project_id: 프로젝트 UUID.
+        number: 프로젝트 내 작업 번호 (1-based sequential).
+        db: 비동기 DB 세션.
+
+    Returns:
+        Task 객체 또는 None.
+    """
+    result = await db.execute(
+        select(Task)
+        .where(Task.project_id == project_id, Task.number == number)
+        .options(
+            selectinload(Task.labels).joinedload(TaskLabel.label),
+            selectinload(Task.tags),
+            joinedload(Task.project),
+        )
+    )
+    return result.unique().scalar_one_or_none()
+
+
 async def _check_update_permission(
     task: Task, user: User, db: AsyncSession
 ) -> bool:
@@ -203,6 +233,12 @@ async def update_task(
         raise PermissionError("작업을 수정할 권한이 없습니다.")
 
     update_data = data.model_dump(exclude_unset=True)
+
+    # 허용되지 않은 필드 차단 (H-04 Mass Assignment 방지)
+    disallowed = set(update_data.keys()) - _UPDATABLE_FIELDS
+    if disallowed:
+        logger.warning(f"허용되지 않은 태스크 필드 수정 시도: {disallowed}")
+        raise ValueError(f"수정할 수 없는 필드: {disallowed}")
 
     # 담당자 변경 시 멤버 검증
     if (

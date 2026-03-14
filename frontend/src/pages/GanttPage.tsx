@@ -1,8 +1,8 @@
 import { useState, useMemo, useCallback } from 'react'
-import { useParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { ArrowSyncRegular } from '@fluentui/react-icons'
 import { useProjectTasks } from '../hooks/useTasks'
+import { useResolvedProjectId } from '../hooks/useResolvedProjectId'
 import { TaskDetailPanel } from '../components/TaskDetailPanel'
 import GanttChart, { type GanttTask, type ViewMode } from '../components/gantt/GanttChart'
 import type { Task } from '../types/task'
@@ -79,7 +79,7 @@ const VIEW_MODES: { label: string; value: ViewMode }[] = [
  * Route: /teams/:teamId/projects/:projKey/gantt
  */
 export default function GanttPage() {
-  const { projKey: projectId = '' } = useParams()
+  const { projectId } = useResolvedProjectId()
   const { t } = useTranslation()
 
   const { data, isLoading, error, refetch } = useProjectTasks(projectId)
