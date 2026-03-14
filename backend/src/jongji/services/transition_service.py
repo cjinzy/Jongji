@@ -73,8 +73,8 @@ async def detect_cycle(
 ) -> bool:
     """새 blocked_by 관계 추가 시 사이클 형성 여부를 DFS로 검사합니다.
 
-    task_id가 new_blocker_id를 통해 자기 자신에게 도달할 수 있으면 사이클입니다.
-    즉, new_blocker_id의 blocked_by 체인을 따라 task_id가 나타나면 사이클입니다.
+    깊이 제한(MAX_CHAIN_DEPTH) 초과 시 안전하게 사이클로 간주합니다.
+    stack이 정상 소진되면 반드시 False를 반환합니다.
 
     Args:
         task_id: 새 관계의 대상 작업 UUID (이 작업이 blocked 됨).
@@ -82,12 +82,16 @@ async def detect_cycle(
         db: 비동기 DB 세션.
 
     Returns:
-        사이클 형성 여부.
+        True면 사이클이 감지됨 (관계 추가 불가).
     """
     visited: set[uuid.UUID] = set()
     stack = [new_blocker_id]
 
-    while stack and len(visited) < MAX_CHAIN_DEPTH:
+    while stack:
+        if len(visited) >= MAX_CHAIN_DEPTH:
+            # 깊이 제한 초과 -- 안전하게 사이클로 간주
+            return True
+
         current = stack.pop()
         if current == task_id:
             return True
@@ -102,7 +106,8 @@ async def detect_cycle(
         parents = list(result.scalars().all())
         stack.extend(parents)
 
-    return len(visited) >= MAX_CHAIN_DEPTH
+    # stack이 비어서 정상 종료 -- 사이클 없음
+    return False
 
 
 async def count_blocked_by(task_id: uuid.UUID, db: AsyncSession) -> int:

@@ -32,9 +32,14 @@ def extract_mentions(content: str) -> list[str]:
     return list(dict.fromkeys(matches))
 
 
-async def add_watchers(task_id: uuid.UUID, usernames: list[str], db: AsyncSession) -> None:
+async def add_watchers(
+    task_id: uuid.UUID,
+    usernames: list[str],
+    db: AsyncSession,
+) -> None:
     """@mention된 사용자들을 작업 감시자로 자동 등록합니다.
 
+    배치 쿼리로 N+1 문제를 방지합니다.
     이미 감시자인 경우 중복 등록하지 않습니다.
     존재하지 않는 사용자명은 조용히 무시합니다.
 
@@ -43,24 +48,33 @@ async def add_watchers(task_id: uuid.UUID, usernames: list[str], db: AsyncSessio
         usernames: @mention된 사용자 이름 목록.
         db: 비동기 DB 세션.
     """
+    if not usernames:
+        return
+
     try:
-        for username in usernames:
-            user_result = await db.execute(select(User).where(User.name == username))
-            user = user_result.scalar_one_or_none()
-            if not user:
-                continue
+        # 1. 배치로 사용자 조회 (1 쿼리)
+        user_result = await db.execute(
+            select(User).where(User.name.in_(usernames))
+        )
+        users = list(user_result.scalars().all())
+        if not users:
+            return
 
-            existing = await db.execute(
-                select(TaskWatcher).where(
-                    TaskWatcher.task_id == task_id,
-                    TaskWatcher.user_id == user.id,
-                )
+        user_ids = [u.id for u in users]
+
+        # 2. 배치로 기존 감시자 조회 (1 쿼리)
+        existing_result = await db.execute(
+            select(TaskWatcher.user_id).where(
+                TaskWatcher.task_id == task_id,
+                TaskWatcher.user_id.in_(user_ids),
             )
-            if existing.scalar_one_or_none():
-                continue
+        )
+        existing_user_ids = set(existing_result.scalars().all())
 
-            watcher = TaskWatcher(task_id=task_id, user_id=user.id)
-            db.add(watcher)
+        # 3. 새 감시자만 등록
+        for user in users:
+            if user.id not in existing_user_ids:
+                db.add(TaskWatcher(task_id=task_id, user_id=user.id))
 
         await db.flush()
     except Exception:
