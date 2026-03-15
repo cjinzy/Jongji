@@ -2,6 +2,7 @@ services:
   postgres:
     image: postgres:16-alpine
     env_file: .env.dev
+    restart: unless-stopped
     ports:
       - "5432:5432"
     volumes:
@@ -19,6 +20,7 @@ services:
       dockerfile: ../Dockerfile.backend
       target: dev
     env_file: .env.dev
+    restart: on-failure:3
     ports:
       - "8888:8000"
     volumes:
@@ -35,6 +37,7 @@ services:
       context: ./frontend
       dockerfile: ../Dockerfile.frontend
       target: dev
+    restart: on-failure:3
     ports:
       - "5173:5173"
     volumes:

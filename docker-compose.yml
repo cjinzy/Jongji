@@ -2,6 +2,7 @@ services:
   postgres:
     image: postgres:16-alpine
     env_file: .env
+    restart: unless-stopped
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
@@ -16,20 +17,32 @@ services:
       context: ./backend
       dockerfile: ../Dockerfile.backend
     env_file: .env
+    restart: on-failure:3
     ports:
       - "8888:8000"
     depends_on:
       postgres:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
 
   frontend:
     build:
       context: ./frontend
       dockerfile: ../Dockerfile.frontend
+    restart: on-failure:3
     ports:
       - "80:80"
     depends_on:
       - backend
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
 
 volumes:
   postgres_data:

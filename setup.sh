@@ -27,18 +27,27 @@ CREDENTIALS_FILE="${PROJECT_ROOT}/.credentials"
 
 # ── 유틸리티 함수 ──────────────────────────────────────────────────
 
-# 영숫자 랜덤 문자열 생성
-generate_password() {
-    local length="${1:-32}"
-    openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c "$length"
+# 크로스플랫폼 sed -i (macOS: sed -i '', Linux: sed -i)
+sed_inplace() {
+    if sed --version 2>/dev/null | grep -q 'GNU'; then
+        sed -i "$@"
+    else
+        sed -i '' "$@"
+    fi
 }
 
-# Admin 비밀번호: 대문자+숫자 반드시 포함, 12자
+# 영숫자 랜덤 문자열 생성 (hex 기반, 엔트로피 보장)
+generate_password() {
+    local length="${1:-32}"
+    openssl rand -hex 64 | tr -dc 'A-Za-z0-9' | head -c "$length"
+}
+
+# Admin 비밀번호: 대문자+소문자+숫자+특수문자 반드시 포함, 16자
 generate_admin_password() {
     while true; do
         local pw
-        pw="$(openssl rand -base64 16 | tr -dc 'A-Za-z0-9' | head -c 12)"
-        if [[ "$pw" =~ [A-Z] ]] && [[ "$pw" =~ [0-9] ]]; then
+        pw="$(openssl rand -hex 32 | tr -dc 'A-Za-z0-9!@#$%^&*' | head -c 16)"
+        if [[ "$pw" =~ [A-Z] ]] && [[ "$pw" =~ [a-z] ]] && [[ "$pw" =~ [0-9] ]] && [[ "$pw" =~ [!@#\$%^\&\*] ]]; then
             echo "$pw"
             return
         fi
@@ -100,10 +109,10 @@ else
     # .env.example → .env 복사
     cp "${ENV_EXAMPLE}" "${ENV_FILE}"
 
-    # 값 치환
-    sed -i'' "s/CHANGE_ME_STRONG_PASSWORD/${POSTGRES_PASSWORD}/g" "${ENV_FILE}"
-    sed -i'' "s/CHANGE_ME_RANDOM_SECRET_KEY/${SECRET_KEY}/" "${ENV_FILE}"
-    sed -i'' "s/CHANGE_ME_SETUP_TOKEN/${SETUP_TOKEN}/" "${ENV_FILE}"
+    # 값 치환 (macOS/Linux 호환)
+    sed_inplace "s/CHANGE_ME_STRONG_PASSWORD/${POSTGRES_PASSWORD}/g" "${ENV_FILE}"
+    sed_inplace "s/CHANGE_ME_RANDOM_SECRET_KEY/${SECRET_KEY}/" "${ENV_FILE}"
+    sed_inplace "s/CHANGE_ME_SETUP_TOKEN/${SETUP_TOKEN}/" "${ENV_FILE}"
 
     # 파일 권한 설정
     chmod 600 "${ENV_FILE}"
