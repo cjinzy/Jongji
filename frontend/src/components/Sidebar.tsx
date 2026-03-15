@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { NavLink, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
@@ -66,18 +65,14 @@ function SectionLabel({ label }: { label: string }) {
 export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { selectedTeam, projects, setProjects, pinnedProjectIds, togglePinnedProject } =
-    useTeamStore()
+  const { selectedTeam, pinnedProjectIds, togglePinnedProject } = useTeamStore()
 
-  const { data: projectData } = useQuery({
+  // Server state: projects fetched via TanStack Query (single source of truth)
+  const { data: projects = [] } = useQuery({
     queryKey: ['projects', selectedTeam?.id],
     queryFn: () => teamsApi.listProjects(selectedTeam!.id),
     enabled: !!selectedTeam,
   })
-
-  useEffect(() => {
-    if (projectData) setProjects(projectData)
-  }, [projectData, setProjects])
 
   const pinnedProjects = projects.filter((p) => pinnedProjectIds.includes(p.id))
 
@@ -113,7 +108,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
             {pinnedProjects.map((project) => (
               <div key={project.id} className="relative group/item">
                 <NavLink
-                  to={`/project/${project.id}`}
+                  to={`/teams/${selectedTeam?.id}/projects/${project.key}/kanban`}
                   title={collapsed ? project.name : undefined}
                   onMouseEnter={prefetchDashboard}
                   className={({ isActive }) =>
@@ -162,7 +157,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
           projects.map((project) => (
             <div key={project.id} className="relative group/item">
               <NavLink
-                to={`/project/${project.id}`}
+                to={`/teams/${selectedTeam?.id}/projects/${project.key}/kanban`}
                 title={collapsed ? project.name : undefined}
                 onMouseEnter={prefetchDashboard}
                 className={({ isActive }) =>

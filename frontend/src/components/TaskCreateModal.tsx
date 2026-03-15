@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { DismissRegular } from '@fluentui/react-icons'
 import { useCreateTask } from '../hooks/useTasks'
 import type { TaskStatus, TaskPriority } from '../types/task'
-import { TASK_STATUSES, PRIORITY_LABELS } from '../types/task'
+import { TASK_STATUSES } from '../types/task'
+import { STATUS_LABELS, PRIORITY_LABELS } from '../constants/task'
 
 interface TaskCreateModalProps {
   projectId: string
@@ -11,16 +12,6 @@ interface TaskCreateModalProps {
   isOpen: boolean
   onClose: () => void
   onCreated?: () => void
-}
-
-const STATUS_LABELS: Record<TaskStatus, string> = {
-  BACKLOG: 'Backlog',
-  TODO: 'Todo',
-  PROGRESS: 'In Progress',
-  REVIEW: 'In Review',
-  DONE: 'Done',
-  REOPEN: 'Reopened',
-  CLOSED: 'Closed',
 }
 
 export function TaskCreateModal({
