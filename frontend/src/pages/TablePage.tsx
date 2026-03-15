@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react'
+import { useMemo, useRef } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useParams, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
@@ -21,64 +21,38 @@ import { teamsApi } from '../api/teams'
 import { taskKeys } from '../hooks/useTasks'
 import type { Task, TaskStatus, TaskPriority } from '../types/task'
 import { TASK_STATUSES, PRIORITY_LABELS } from '../types/task'
+import { STATUS_COLORS, PRIORITY_COLORSS } from '../constants/task'
 import { formatDate } from '../utils/date'
+import { sortTasks } from './table/tableUtils'
+import type { SortKey, SortDir } from './table/tableUtils'
+import { useTableSort } from './table/useTableSort'
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 
+/** Status display metadata with icon for inline status cells. */
 const STATUS_META: Record<
   TaskStatus,
   { label: string; color: string; icon: React.ElementType }
 > = {
-  BACKLOG: { label: 'Backlog', color: '#6B6B76', icon: CircleRegular },
-  TODO: { label: 'Todo', color: '#A0A0A8', icon: CircleRegular },
+  BACKLOG: { label: 'Backlog', color: STATUS_COLORS.BACKLOG, icon: CircleRegular },
+  TODO: { label: 'Todo', color: STATUS_COLORS.TODO, icon: CircleRegular },
   PROGRESS: {
     label: 'In Progress',
-    color: '#5B6AF0',
+    color: STATUS_COLORS.PROGRESS,
     icon: ArrowCircleRightRegular,
   },
-  REVIEW: { label: 'Review', color: '#F59E0B', icon: ClockRegular },
+  REVIEW: { label: 'Review', color: STATUS_COLORS.REVIEW, icon: ClockRegular },
   DONE: {
     label: 'Done',
-    color: '#22C55E',
+    color: STATUS_COLORS.DONE,
     icon: CheckmarkCircleRegular,
   },
   REOPEN: {
     label: 'Reopen',
-    color: '#EF4444',
+    color: STATUS_COLORS.REOPEN,
     icon: ErrorCircleRegular,
   },
-  CLOSED: { label: 'Closed', color: '#444448', icon: CheckmarkCircleRegular },
-}
-
-const PRIORITY_COLOR: Record<TaskPriority, string> = {
-  0: '#6B6B76',
-  1: '#22C55E',
-  2: '#F59E0B',
-  3: '#EF4444',
-  4: '#EF4444',
-}
-
-// ── Sort ──────────────────────────────────────────────────────────────────────
-
-type SortKey = 'number' | 'title' | 'status' | 'priority' | 'due_date' | 'created_at'
-type SortDir = 'asc' | 'desc'
-
-function sortTasks(tasks: Task[], key: SortKey, dir: SortDir): Task[] {
-  return [...tasks].sort((a, b) => {
-    let cmp = 0
-    if (key === 'number') cmp = a.number - b.number
-    else if (key === 'title') cmp = a.title.localeCompare(b.title)
-    else if (key === 'status') cmp = TASK_STATUSES.indexOf(a.status) - TASK_STATUSES.indexOf(b.status)
-    else if (key === 'priority') cmp = a.priority - b.priority
-    else if (key === 'due_date') {
-      const ad = a.due_date ?? ''
-      const bd = b.due_date ?? ''
-      cmp = ad < bd ? -1 : ad > bd ? 1 : 0
-    } else if (key === 'created_at') {
-      cmp = a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0
-    }
-    return dir === 'asc' ? cmp : -cmp
-  })
+  CLOSED: { label: 'Closed', color: STATUS_COLORS.CLOSED, icon: CheckmarkCircleRegular },
 }
 
 // ── Inline status dropdown ────────────────────────────────────────────────────
@@ -175,7 +149,7 @@ function PriorityCell({
 }) {
   const [open, setOpen] = useState(false)
   const queryClient = useQueryClient()
-  const color = PRIORITY_COLOR[priority]
+  const color = PRIORITY_COLORS[priority]
   const label = PRIORITY_LABELS[priority]
 
   const mutation = useMutation({
@@ -214,7 +188,7 @@ function PriorityCell({
           />
           <div className="absolute top-full mt-1 left-0 z-30 bg-bg-secondary border border-border rounded-lg shadow-xl shadow-black/40 overflow-hidden py-1 min-w-[120px]">
             {([0, 1, 2, 3, 4] as TaskPriority[]).map((p) => {
-              const c = PRIORITY_COLOR[p]
+              const c = PRIORITY_COLORS[p]
               const lbl = PRIORITY_LABELS[p]
               return (
                 <button
@@ -296,8 +270,7 @@ export default function TablePage() {
   }>()
   const navigate = useNavigate()
 
-  const [sortKey, setSortKey] = useState<SortKey>('number')
-  const [sortDir, setSortDir] = useState<SortDir>('asc')
+  const { sortKey, sortDir, handleSort } = useTableSort()
 
   const { filters } = useFilters()
 
@@ -330,14 +303,6 @@ export default function TablePage() {
       list = list.filter((t) => filters.priority.includes(t.priority))
     return sortTasks(list, sortKey, sortDir)
   }, [page, filters, sortKey, sortDir])
-
-  function handleSort(key: SortKey) {
-    if (key === sortKey) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
-    else {
-      setSortKey(key)
-      setSortDir('asc')
-    }
-  }
 
   function openTask(number: number) {
     navigate(`/teams/${teamId}/projects/${projKey}/tasks/${number}`)

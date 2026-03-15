@@ -79,6 +79,13 @@ export const PRIORITY_META: Record<TaskPriority, PriorityMeta> = Object.fromEntr
 ) as Record<TaskPriority, PriorityMeta>
 
 // ---------------------------------------------------------------------------
+// Accent color (primary brand / interactive color)
+// ---------------------------------------------------------------------------
+
+/** Primary accent color used across buttons, icons, and highlights. */
+export const ACCENT_COLOR = '#5B6AF0'
+
+// ---------------------------------------------------------------------------
 // Chart palette (used in dashboard)
 // ---------------------------------------------------------------------------
 

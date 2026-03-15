@@ -2,6 +2,8 @@
  * KpiCard — key performance indicator card for the dashboard.
  */
 
+import { ACCENT_COLOR } from '../../constants/task'
+
 interface KpiCardProps {
   label: string
   value: string | number
@@ -10,7 +12,7 @@ interface KpiCardProps {
   accent?: string
 }
 
-export function KpiCard({ label, value, sub, icon, accent = '#5B6AF0' }: KpiCardProps) {
+export function KpiCard({ label, value, sub, icon, accent = ACCENT_COLOR }: KpiCardProps) {
   return (
     <div className="bg-bg-secondary border border-border rounded-xl p-5 flex items-start gap-4 hover:border-accent/30 transition-colors">
       <div

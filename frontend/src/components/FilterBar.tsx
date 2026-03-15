@@ -1,4 +1,3 @@
-import { useRef, useState, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   FilterRegular,
@@ -9,72 +8,21 @@ import {
 import { useFilters } from '../hooks/useFilters'
 import type { TaskStatus, TaskPriority } from '../types/task'
 import { TASK_STATUSES } from '../types/task'
+import { STATUS_META, PRIORITY_COLORS } from '../constants/task'
+import { Dropdown } from './ui/Dropdown'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-const STATUS_META: Record<TaskStatus, { label: string; color: string }> = {
-  BACKLOG: { label: 'Backlog', color: '#6B6B76' },
-  TODO: { label: 'Todo', color: '#A0A0A8' },
-  PROGRESS: { label: 'In Progress', color: '#5B6AF0' },
-  REVIEW: { label: 'Review', color: '#F59E0B' },
-  DONE: { label: 'Done', color: '#22C55E' },
-  REOPEN: { label: 'Reopen', color: '#EF4444' },
-  CLOSED: { label: 'Closed', color: '#444448' },
-}
-
+/** Priority display metadata with dot symbol for the filter dropdown. */
 const PRIORITY_META: Record<
   TaskPriority,
   { label: string; color: string; dot: string }
 > = {
-  0: { label: 'None', color: '#6B6B76', dot: '○' },
-  1: { label: 'Low', color: '#22C55E', dot: '▲' },
-  2: { label: 'Medium', color: '#F59E0B', dot: '▲' },
-  3: { label: 'High', color: '#EF4444', dot: '▲' },
-  4: { label: 'Urgent', color: '#EF4444', dot: '!!' },
-}
-
-// ── Dropdown wrapper ──────────────────────────────────────────────────────────
-
-function Dropdown({
-  trigger,
-  children,
-}: {
-  trigger: React.ReactNode
-  children: React.ReactNode
-}) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-
-  function handleKeyDown(e: KeyboardEvent) {
-    if (e.key === 'Escape') setOpen(false)
-  }
-
-  return (
-    <div className="relative" ref={ref} onKeyDown={handleKeyDown}>
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={() => setOpen((v) => !v)}
-        onKeyDown={(e) => e.key === 'Enter' && setOpen((v) => !v)}
-        aria-expanded={open}
-      >
-        {trigger}
-      </div>
-      {open && (
-        <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 z-20"
-            onClick={() => setOpen(false)}
-            aria-hidden="true"
-          />
-          <div className="absolute top-full mt-1.5 left-0 z-30 min-w-[160px] bg-bg-secondary border border-border rounded-lg shadow-xl shadow-black/40 overflow-hidden">
-            {children}
-          </div>
-        </>
-      )}
-    </div>
-  )
+  0: { label: 'None', color: PRIORITY_COLORS[0], dot: '○' },
+  1: { label: 'Low', color: PRIORITY_COLORS[1], dot: '▲' },
+  2: { label: 'Medium', color: PRIORITY_COLORS[2], dot: '▲' },
+  3: { label: 'High', color: PRIORITY_COLORS[3], dot: '▲' },
+  4: { label: 'Urgent', color: PRIORITY_COLORS[4], dot: '!!' },
 }
 
 // ── FilterChip ────────────────────────────────────────────────────────────────
