@@ -10,6 +10,7 @@ import uuid
 from loguru import logger
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from jongji.models.alert import AlertConfig, AlertLog
 from jongji.models.enums import AlertChannel, AlertLogStatus
@@ -132,9 +133,11 @@ async def process_digest(db: AsyncSession, email_backend: str = "smtp") -> int:
         처리된 AlertLog 수.
     """
     try:
-        # pending 로그 조회
+        # pending 로그 조회 (user 관계 즉시 로드하여 별도 쿼리 제거)
         result = await db.execute(
-            select(AlertLog).where(AlertLog.status == AlertLogStatus.PENDING)
+            select(AlertLog)
+            .where(AlertLog.status == AlertLogStatus.PENDING)
+            .options(selectinload(AlertLog.user))
         )
         pending_logs: list[AlertLog] = list(result.scalars().all())
 
@@ -148,10 +151,9 @@ async def process_digest(db: AsyncSession, email_backend: str = "smtp") -> int:
             key = (log.user_id, str(log.task_id) if log.task_id else None, log.channel)
             groups.setdefault(key, []).append(log)
 
-        # 사용자 정보 일괄 조회
+        # selectinload로 이미 로드된 user 관계에서 맵 구성 (별도 쿼리 불필요)
         user_ids = {log.user_id for log in pending_logs}
-        users_result = await db.execute(select(User).where(User.id.in_(user_ids)))
-        user_map: dict[uuid.UUID, User] = {u.id: u for u in users_result.scalars().all()}
+        user_map: dict[uuid.UUID, User] = {log.user_id: log.user for log in pending_logs}
 
         # AlertConfig 일괄 조회
         configs_result = await db.execute(

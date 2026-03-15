@@ -97,11 +97,11 @@ async def dispatch(
 
         # watchers
         watcher_rows = await db.execute(
-            select(TaskWatcher).where(TaskWatcher.task_id == task.id)
+            select(TaskWatcher.user_id).where(TaskWatcher.task_id == task.id)
         )
-        for watcher in watcher_rows.scalars().all():
-            if watcher.user_id != actor_user.id:
-                recipient_ids.add(watcher.user_id)
+        for watcher_user_id in watcher_rows.scalars().all():
+            if watcher_user_id != actor_user.id:
+                recipient_ids.add(watcher_user_id)
 
         # @멘션된 사용자 (최근 댓글에서 추출)
         mentioned_ids = _extract_mentioned_user_ids(task.description)

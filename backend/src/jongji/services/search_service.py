@@ -8,8 +8,9 @@ import traceback
 import uuid
 
 from loguru import logger
-from sqlalchemy import func, select, text
+from sqlalchemy import Select, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import contains_eager
 
 from jongji.models.enums import TaskStatus
 from jongji.models.project import Project
@@ -165,16 +166,17 @@ async def _search_by_tag(
         검색 결과 목록.
     """
     stmt = (
-        select(Task, Project)
+        select(Task)
         .join(Project, Task.project_id == Project.id)
         .join(TaskTag, TaskTag.task_id == Task.id)
         .where(TaskTag.tag == tag, Task.is_archived.is_(False))
+        .options(contains_eager(Task.project))
     )
     stmt = _apply_task_filters(stmt, project_id, status, assignee_id, priority)
     stmt = stmt.limit(limit).offset(offset)
 
     result = await db.execute(stmt)
-    rows = result.all()
+    tasks = result.scalars().all()
 
     return [
         SearchResultItem(
@@ -182,11 +184,11 @@ async def _search_by_tag(
             task_id=task.id,
             task_number=task.number,
             task_title=task.title,
-            project_key=project.key,
+            project_key=task.project.key,
             highlight=f"tag:{tag}",
             score=1.0,
         )
-        for task, project in rows
+        for task in tasks
     ]
 
 
@@ -219,19 +221,20 @@ async def _search_by_project_key_number(
         검색 결과 목록.
     """
     stmt = (
-        select(Task, Project)
+        select(Task)
         .join(Project, Task.project_id == Project.id)
         .where(
             Project.key == key,
             Task.number == number,
             Task.is_archived.is_(False),
         )
+        .options(contains_eager(Task.project))
     )
     stmt = _apply_task_filters(stmt, project_id, status, assignee_id, priority)
     stmt = stmt.limit(limit).offset(offset)
 
     result = await db.execute(stmt)
-    rows = result.all()
+    tasks = result.scalars().all()
 
     return [
         SearchResultItem(
@@ -239,11 +242,11 @@ async def _search_by_project_key_number(
             task_id=task.id,
             task_number=task.number,
             task_title=task.title,
-            project_key=project.key,
-            highlight=f"{project.key}-{task.number}",
+            project_key=task.project.key,
+            highlight=f"{task.project.key}-{task.number}",
             score=2.0,
         )
-        for task, project in rows
+        for task in tasks
     ]
 
 
@@ -355,12 +358,13 @@ async def _search_tasks(
         score_expr = (sim_title + sim_desc * 0.5).label("score")
 
         stmt = (
-            select(Task, Project, score_expr)
+            select(Task, score_expr)
             .join(Project, Task.project_id == Project.id)
             .where(
                 Task.is_archived.is_(False),
                 (sim_title > 0.1) | (sim_desc > 0.1),
             )
+            .options(contains_eager(Task.project))
         )
         stmt = _apply_task_filters(stmt, project_id, status, assignee_id, priority)
         if tag:
@@ -368,16 +372,15 @@ async def _search_tasks(
         stmt = stmt.order_by(text("score DESC")).limit(limit).offset(offset)
 
         result = await db.execute(stmt)
-        for task, project, score in result.all():
-            highlight = task.title[:100]
+        for task, score in result.all():
             items.append(
                 SearchResultItem(
                     type="task",
                     task_id=task.id,
                     task_number=task.number,
                     task_title=task.title,
-                    project_key=project.key,
-                    highlight=highlight,
+                    project_key=task.project.key,
+                    highlight=task.title[:100],
                     score=float(score),
                 )
             )
@@ -389,12 +392,13 @@ async def _search_tasks(
 
         # tsvector 결과
         ts_stmt = (
-            select(Task, Project, ts_rank)
+            select(Task, ts_rank)
             .join(Project, Task.project_id == Project.id)
             .where(
                 Task.is_archived.is_(False),
                 Task.search_vector.op("@@")(ts_query),
             )
+            .options(contains_eager(Task.project))
         )
         ts_stmt = _apply_task_filters(ts_stmt, project_id, status, assignee_id, priority)
         if tag:
@@ -403,7 +407,7 @@ async def _search_tasks(
 
         ts_result = await db.execute(ts_stmt)
         seen_ids: set[uuid.UUID] = set()
-        for task, project, score in ts_result.all():
+        for task, score in ts_result.all():
             seen_ids.add(task.id)
             items.append(
                 SearchResultItem(
@@ -411,7 +415,7 @@ async def _search_tasks(
                     task_id=task.id,
                     task_number=task.number,
                     task_title=task.title,
-                    project_key=project.key,
+                    project_key=task.project.key,
                     highlight=task.title[:100],
                     score=float(score) + 0.5,  # tsvector 결과 우대
                 )
@@ -421,13 +425,14 @@ async def _search_tasks(
         remaining = limit - len(items)
         if remaining > 0:
             trgm_stmt = (
-                select(Task, Project, sim_title.label("score"))
+                select(Task, sim_title.label("score"))
                 .join(Project, Task.project_id == Project.id)
                 .where(
                     Task.is_archived.is_(False),
                     Task.id.notin_(list(seen_ids)) if seen_ids else text("TRUE"),
                     sim_title > 0.1,
                 )
+                .options(contains_eager(Task.project))
             )
             trgm_stmt = _apply_task_filters(trgm_stmt, project_id, status, assignee_id, priority)
             if tag:
@@ -437,14 +442,14 @@ async def _search_tasks(
             trgm_stmt = trgm_stmt.order_by(text("score DESC")).limit(remaining).offset(offset)
 
             trgm_result = await db.execute(trgm_stmt)
-            for task, project, score in trgm_result.all():
+            for task, score in trgm_result.all():
                 items.append(
                     SearchResultItem(
                         type="task",
                         task_id=task.id,
                         task_number=task.number,
                         task_title=task.title,
-                        project_key=project.key,
+                        project_key=task.project.key,
                         highlight=task.title[:100],
                         score=float(score),
                     )
@@ -488,26 +493,30 @@ async def _search_comments(
         score_expr = sim_content.label("score")
 
         stmt = (
-            select(TaskComment, Task, Project, score_expr)
+            select(TaskComment, score_expr)
             .join(Task, TaskComment.task_id == Task.id)
             .join(Project, Task.project_id == Project.id)
             .where(
                 Task.is_archived.is_(False),
                 sim_content > 0.1,
             )
+            .options(
+                contains_eager(TaskComment.task).contains_eager(Task.project)
+            )
         )
         stmt = _apply_task_filters(stmt, project_id, status, assignee_id, priority, task_model=Task)
         stmt = stmt.order_by(text("score DESC")).limit(limit).offset(offset)
 
         result = await db.execute(stmt)
-        for comment, task, project, score in result.all():
+        for comment, score in result.all():
+            task = comment.task
             items.append(
                 SearchResultItem(
                     type="comment",
                     task_id=task.id,
                     task_number=task.number,
                     task_title=task.title,
-                    project_key=project.key,
+                    project_key=task.project.key,
                     highlight=comment.content[:100],
                     score=float(score) * 0.8,  # 댓글은 작업보다 낮은 가중치
                 )
@@ -517,26 +526,30 @@ async def _search_comments(
         ts_rank = func.ts_rank(TaskComment.search_vector, ts_query).label("score")
 
         stmt = (
-            select(TaskComment, Task, Project, ts_rank)
+            select(TaskComment, ts_rank)
             .join(Task, TaskComment.task_id == Task.id)
             .join(Project, Task.project_id == Project.id)
             .where(
                 Task.is_archived.is_(False),
                 TaskComment.search_vector.op("@@")(ts_query),
             )
+            .options(
+                contains_eager(TaskComment.task).contains_eager(Task.project)
+            )
         )
         stmt = _apply_task_filters(stmt, project_id, status, assignee_id, priority, task_model=Task)
         stmt = stmt.order_by(text("score DESC")).limit(limit).offset(offset)
 
         result = await db.execute(stmt)
-        for comment, task, project, score in result.all():
+        for comment, score in result.all():
+            task = comment.task
             items.append(
                 SearchResultItem(
                     type="comment",
                     task_id=task.id,
                     task_number=task.number,
                     task_title=task.title,
-                    project_key=project.key,
+                    project_key=task.project.key,
                     highlight=comment.content[:100],
                     score=float(score) * 0.8,
                 )
@@ -545,7 +558,15 @@ async def _search_comments(
     return items
 
 
-def _apply_task_filters(stmt, project_id, status, assignee_id, priority, *, task_model=None):
+def _apply_task_filters(
+    stmt: Select,
+    project_id: uuid.UUID | None,
+    status: TaskStatus | None,
+    assignee_id: uuid.UUID | None,
+    priority: int | None,
+    *,
+    task_model: type[Task] | None = None,
+) -> Select:
     """공통 작업 필터를 적용합니다.
 
     Args:
