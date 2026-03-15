@@ -44,7 +44,6 @@ const ResultItem = memo(function ResultItem({
         isActive ? 'bg-bg-hover' : 'hover:bg-bg-hover/50'
       }`}
     >
-      {/* Type icon */}
       <span className="mt-0.5 shrink-0 text-text-tertiary">
         {item.type === 'task' ? (
           <TaskListSquareLtrRegular className="w-4 h-4" />
@@ -54,7 +53,6 @@ const ResultItem = memo(function ResultItem({
       </span>
 
       <span className="flex-1 min-w-0">
-        {/* Title row */}
         <span className="flex items-center gap-2">
           <span className="text-[10px] font-mono text-text-tertiary shrink-0 tracking-wide">
             {item.project_key}-{item.task_number}
@@ -64,7 +62,6 @@ const ResultItem = memo(function ResultItem({
           </span>
         </span>
 
-        {/* Highlight snippet */}
         {item.highlight && item.highlight !== item.task_title && (
           <span className="block mt-0.5 text-xs text-text-tertiary truncate leading-relaxed">
             <HighlightText html={item.highlight} />
@@ -72,7 +69,6 @@ const ResultItem = memo(function ResultItem({
         )}
       </span>
 
-      {/* Enter hint */}
       {isActive && (
         <span className="shrink-0 mt-0.5 text-text-tertiary opacity-60">
           <ArrowEnterLeftRegular className="w-3.5 h-3.5" />

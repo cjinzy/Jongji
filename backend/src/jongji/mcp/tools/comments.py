@@ -6,7 +6,6 @@
 from typing import Any
 
 from loguru import logger
-from sqlalchemy.exc import SQLAlchemyError
 
 from jongji.mcp.tools.common import (
     _handle_tool_error,
@@ -52,7 +51,5 @@ async def add_comment(api_key: str, task_id: str, content: str) -> dict[str, Any
         except ValueError as e:
             logger.warning(f"add_comment 입력 검증 실패: {e}")
             return {"error": str(e)}
-        except SQLAlchemyError as e:
-            return _handle_tool_error("add_comment", e)
         except Exception as e:
             return _handle_tool_error("add_comment", e)

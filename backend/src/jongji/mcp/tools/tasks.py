@@ -7,7 +7,6 @@ from typing import Any
 
 from loguru import logger
 from sqlalchemy import delete, select
-from sqlalchemy.exc import SQLAlchemyError
 
 from jongji.mcp.tools.common import (
     _handle_tool_error,
@@ -71,8 +70,6 @@ async def create_task(
         except ValueError as e:
             logger.warning(f"create_task 검증 실패: {e}")
             return {"error": str(e)}
-        except SQLAlchemyError as e:
-            return _handle_tool_error("create_task", e)
         except Exception as e:
             return _handle_tool_error("create_task", e)
 
@@ -136,8 +133,6 @@ async def update_task(
         except ValueError as e:
             logger.warning(f"update_task 검증 실패: {e}")
             return {"error": str(e)}
-        except SQLAlchemyError as e:
-            return _handle_tool_error("update_task", e)
         except Exception as e:
             return _handle_tool_error("update_task", e)
 
@@ -195,8 +190,6 @@ async def get_task(api_key: str, task_id: str) -> dict[str, Any]:
         except ValueError as e:
             logger.warning(f"get_task 입력 검증 실패: {e}")
             return {"error": str(e)}
-        except SQLAlchemyError as e:
-            return _handle_tool_error("get_task", e)
         except Exception as e:
             return _handle_tool_error("get_task", e)
 
@@ -260,8 +253,6 @@ async def list_tasks(
         except ValueError as e:
             logger.warning(f"list_tasks 입력 검증 실패: {e}")
             return [{"error": str(e)}]
-        except SQLAlchemyError as e:
-            return [_handle_tool_error("list_tasks", e)]
         except Exception as e:
             return [_handle_tool_error("list_tasks", e)]
 
@@ -304,8 +295,6 @@ async def get_task_history(api_key: str, task_id: str) -> list[dict[str, Any]]:
         except ValueError as e:
             logger.warning(f"get_task_history 입력 검증 실패: {e}")
             return [{"error": str(e)}]
-        except SQLAlchemyError as e:
-            return [_handle_tool_error("get_task_history", e)]
         except Exception as e:
             return [_handle_tool_error("get_task_history", e)]
 
@@ -343,8 +332,6 @@ async def list_labels(api_key: str, project_id: str) -> list[dict[str, Any]]:
         except ValueError as e:
             logger.warning(f"list_labels 입력 검증 실패: {e}")
             return [{"error": str(e)}]
-        except SQLAlchemyError as e:
-            return [_handle_tool_error("list_labels", e)]
         except Exception as e:
             return [_handle_tool_error("list_labels", e)]
 
@@ -377,7 +364,6 @@ async def add_label(api_key: str, task_id: str, label_id: str) -> dict[str, Any]
                 return {"success": True, "message": "이미 추가된 라벨입니다."}
 
             db.add(TaskLabel(task_id=task_uuid, label_id=label_uuid))
-            await db.flush()
             await db.commit()
             return {"success": True, "task_id": task_id, "label_id": label_id}
         except PermissionError as e:
@@ -386,8 +372,6 @@ async def add_label(api_key: str, task_id: str, label_id: str) -> dict[str, Any]
         except ValueError as e:
             logger.warning(f"add_label 입력 검증 실패: {e}")
             return {"error": str(e)}
-        except SQLAlchemyError as e:
-            return _handle_tool_error("add_label", e)
         except Exception as e:
             return _handle_tool_error("add_label", e)
 
@@ -433,8 +417,6 @@ async def remove_label(api_key: str, task_id: str, label_id: str) -> dict[str, A
         except ValueError as e:
             logger.warning(f"remove_label 입력 검증 실패: {e}")
             return {"error": str(e)}
-        except SQLAlchemyError as e:
-            return _handle_tool_error("remove_label", e)
         except Exception as e:
             return _handle_tool_error("remove_label", e)
 
@@ -468,7 +450,5 @@ async def export_task(
         except ValueError as e:
             logger.warning(f"export_task 입력 검증 실패: {e}")
             return {"error": str(e)}
-        except SQLAlchemyError as e:
-            return _handle_tool_error("export_task", e)
         except Exception as e:
             return _handle_tool_error("export_task", e)

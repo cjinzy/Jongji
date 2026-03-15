@@ -7,7 +7,6 @@ from typing import Any
 
 from loguru import logger
 from sqlalchemy import select
-from sqlalchemy.exc import SQLAlchemyError
 
 from jongji.mcp.tools.common import (
     _handle_tool_error,
@@ -59,8 +58,6 @@ async def list_projects(api_key: str, team_id: str) -> list[dict[str, Any]]:
         except ValueError as e:
             logger.warning(f"list_projects 입력 검증 실패: {e}")
             return [{"error": str(e)}]
-        except SQLAlchemyError:
-            return [_handle_tool_error("list_projects", SQLAlchemyError())]
         except Exception as e:
             return [_handle_tool_error("list_projects", e)]
 
@@ -104,8 +101,6 @@ async def get_project(api_key: str, project_id: str) -> dict[str, Any]:
         except ValueError as e:
             logger.warning(f"get_project 입력 검증 실패: {e}")
             return {"error": str(e)}
-        except SQLAlchemyError as e:
-            return _handle_tool_error("get_project", e)
         except Exception as e:
             return _handle_tool_error("get_project", e)
 
@@ -139,7 +134,5 @@ async def export_project(
         except ValueError as e:
             logger.warning(f"export_project 입력 검증 실패: {e}")
             return {"error": str(e)}
-        except SQLAlchemyError as e:
-            return _handle_tool_error("export_project", e)
         except Exception as e:
             return _handle_tool_error("export_project", e)

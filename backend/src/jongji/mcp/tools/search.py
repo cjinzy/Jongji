@@ -6,7 +6,6 @@
 from typing import Any
 
 from loguru import logger
-from sqlalchemy.exc import SQLAlchemyError
 
 from jongji.mcp.tools.common import (
     _handle_tool_error,
@@ -65,7 +64,5 @@ async def search_tasks(
         except ValueError as e:
             logger.warning(f"search_tasks 입력 검증 실패: {e}")
             return [{"error": str(e)}]
-        except SQLAlchemyError as e:
-            return [_handle_tool_error("search_tasks", e)]
         except Exception as e:
             return [_handle_tool_error("search_tasks", e)]
