@@ -25,6 +25,7 @@ import type { MentionListHandle } from './MentionList'
 import { attachmentsApi } from '../../api/attachments'
 import { usersApi } from '../../api/users'
 import type { User } from '../../api/users'
+import { ToolbarBtn } from './ToolbarBtn'
 
 interface RichEditorProps {
   /** Initial HTML content */
@@ -37,48 +38,6 @@ interface RichEditorProps {
 }
 
 type HeadingLevel = 1 | 2 | 3
-
-/** Icon button used in the toolbar */
-function ToolbarBtn({
-  onClick,
-  active,
-  disabled,
-  title,
-  children,
-}: {
-  onClick: () => void
-  active?: boolean
-  disabled?: boolean
-  title: string
-  children: React.ReactNode
-}) {
-  return (
-    <button
-      type="button"
-      onMouseDown={(e) => {
-        // Prevent editor from losing focus
-        e.preventDefault()
-        onClick()
-      }}
-      disabled={disabled}
-      title={title}
-      aria-label={title}
-      aria-pressed={active}
-      className={`
-        w-7 h-7 rounded flex items-center justify-center
-        transition-colors duration-100 focus-visible:outline-none
-        focus-visible:ring-1 focus-visible:ring-accent
-        ${active
-          ? 'bg-accent/20 text-accent'
-          : 'text-text-tertiary hover:text-text-primary hover:bg-bg-hover'
-        }
-        ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}
-      `}
-    >
-      {children}
-    </button>
-  )
-}
 
 /** Thin vertical divider for the toolbar */
 function ToolbarDivider() {

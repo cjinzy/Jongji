@@ -13,59 +13,8 @@ import {
 } from '@fluentui/react-icons'
 import { teamsApi } from '../api/teams'
 import { useTeamStore } from '../stores/team'
-
-function InputField({
-  label,
-  hint,
-  optional,
-  ...props
-}: React.InputHTMLAttributes<HTMLInputElement> & {
-  label: string
-  hint?: string
-  optional?: boolean
-}) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex items-center gap-2">
-        <label className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-          {label}
-        </label>
-        {optional && (
-          <span className="text-[10px] text-text-tertiary bg-bg-hover px-1.5 py-0.5 rounded">
-            optional
-          </span>
-        )}
-      </div>
-      <input
-        {...props}
-        className="w-full px-3 py-2.5 bg-bg-tertiary border border-border rounded-lg text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/10 transition-all duration-150"
-      />
-      {hint && <p className="text-xs text-text-tertiary">{hint}</p>}
-    </div>
-  )
-}
-
-function TipCard({
-  icon: Icon,
-  title,
-  desc,
-}: {
-  icon: React.ComponentType<{ className?: string }>
-  title: string
-  desc: string
-}) {
-  return (
-    <div className="flex gap-3 p-4 bg-bg-tertiary border border-border rounded-xl">
-      <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
-        <Icon className="w-4 h-4 text-accent" />
-      </div>
-      <div>
-        <p className="text-sm font-medium text-text-primary">{title}</p>
-        <p className="text-xs text-text-secondary mt-0.5">{desc}</p>
-      </div>
-    </div>
-  )
-}
+import { InputField } from '../components/onboarding/InputField'
+import { TipCard } from '../components/onboarding/TipCard'
 
 export default function OnboardingPage() {
   const { t } = useTranslation()

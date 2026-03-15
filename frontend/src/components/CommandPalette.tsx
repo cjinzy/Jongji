@@ -4,136 +4,11 @@ import { useTranslation } from 'react-i18next'
 import {
   SearchRegular,
   DismissRegular,
-  TaskListSquareLtrRegular,
-  ChatRegular,
-  ClockRegular,
-  ArrowEnterLeftRegular,
 } from '@fluentui/react-icons'
 import { useSearch } from '../hooks/useSearch'
 import type { SearchResultItem } from '../api/search'
-
-// ---------------------------------------------------------------------------
-// Recent searches — localStorage backed, max 5
-// ---------------------------------------------------------------------------
-
-const STORAGE_KEY = 'jongji-recent-searches'
-const MAX_RECENT = 5
-
-function getRecentSearches(): string[] {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]')
-  } catch {
-    return []
-  }
-}
-
-function saveRecentSearch(query: string): void {
-  const trimmed = query.trim()
-  if (!trimmed) return
-  const prev = getRecentSearches().filter((q) => q !== trimmed)
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify([trimmed, ...prev].slice(0, MAX_RECENT)),
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Renders text with <mark> segments highlighted.
- * The backend returns highlight strings with <mark>...</mark> tags.
- * Parses safely to avoid XSS — only <mark> tags are rendered as elements.
- */
-function HighlightText({ html }: { html: string }) {
-  // Split on <mark>...</mark> and render safely without dangerouslySetInnerHTML
-  const parts = html.split(/(<mark>.*?<\/mark>)/g)
-  return (
-    <span className="[&_mark]:bg-accent/20 [&_mark]:text-accent [&_mark]:rounded-[2px] [&_mark]:px-0.5">
-      {parts.map((part, i) => {
-        const match = part.match(/^<mark>(.*?)<\/mark>$/)
-        if (match) {
-          return <mark key={i}>{match[1]}</mark>
-        }
-        return <span key={i}>{part}</span>
-      })}
-    </span>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Result item component
-// ---------------------------------------------------------------------------
-
-function ResultItem({
-  item,
-  isActive,
-  onSelect,
-  onMouseEnter,
-}: {
-  item: SearchResultItem
-  isActive: boolean
-  onSelect: (item: SearchResultItem) => void
-  onMouseEnter: () => void
-}) {
-  const ref = useRef<HTMLButtonElement>(null)
-
-  useEffect(() => {
-    if (isActive) {
-      ref.current?.scrollIntoView({ block: 'nearest' })
-    }
-  }, [isActive])
-
-  return (
-    <button
-      ref={ref}
-      type="button"
-      role="option"
-      aria-selected={isActive}
-      onClick={() => onSelect(item)}
-      onMouseEnter={onMouseEnter}
-      className={`w-full flex items-start gap-3 px-4 py-2.5 text-left transition-colors duration-75 outline-none ${
-        isActive ? 'bg-bg-hover' : 'hover:bg-bg-hover/50'
-      }`}
-    >
-      {/* Type icon */}
-      <span className="mt-0.5 shrink-0 text-text-tertiary">
-        {item.type === 'task' ? (
-          <TaskListSquareLtrRegular className="w-4 h-4" />
-        ) : (
-          <ChatRegular className="w-4 h-4" />
-        )}
-      </span>
-
-      <span className="flex-1 min-w-0">
-        {/* Title row */}
-        <span className="flex items-center gap-2">
-          <span className="text-[10px] font-mono text-text-tertiary shrink-0 tracking-wide">
-            {item.project_key}-{item.task_number}
-          </span>
-          <span className="text-sm text-text-primary truncate font-medium">
-            {item.task_title}
-          </span>
-        </span>
-
-        {/* Highlight snippet */}
-        {item.highlight && item.highlight !== item.task_title && (
-          <span className="block mt-0.5 text-xs text-text-tertiary truncate leading-relaxed">
-            <HighlightText html={item.highlight} />
-          </span>
-        )}
-      </span>
-
-      {/* Enter hint */}
-      {isActive && (
-        <span className="shrink-0 mt-0.5 text-text-tertiary opacity-60">
-          <ArrowEnterLeftRegular className="w-3.5 h-3.5" />
-        </span>
-      )}
-    </button>
-  )
-}
+import { getRecentSearches, saveRecentSearch, RecentSearches } from './command/RecentSearches'
+import { ResultItem } from './command/ResultItem'
 
 // ---------------------------------------------------------------------------
 // Section header
@@ -318,21 +193,14 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
           className="max-h-[380px] overflow-y-auto overscroll-contain"
         >
           {/* Recent searches (shown when input empty) */}
-          {showRecent && recentSearches.length > 0 && (
-            <div className="py-1">
-              <SectionHeader label={t('search.recent')} count={recentSearches.length} />
-              {recentSearches.map((recent) => (
-                <button
-                  key={recent}
-                  type="button"
-                  onClick={() => handleRecentClick(recent)}
-                  className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-bg-hover/50 transition-colors duration-75"
-                >
-                  <ClockRegular className="w-4 h-4 shrink-0 text-text-tertiary" />
-                  <span className="text-sm text-text-secondary truncate">{recent}</span>
-                </button>
-              ))}
-            </div>
+          {showRecent && (
+            <RecentSearches
+              searches={recentSearches}
+              onSelect={handleRecentClick}
+              sectionHeader={
+                <SectionHeader label={t('search.recent')} count={recentSearches.length} />
+              }
+            />
           )}
 
           {/* Empty state when no recent & no query */}
