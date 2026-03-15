@@ -15,6 +15,13 @@ from jongji.models.project import Project, ProjectMember
 from jongji.models.team import Team, TeamMember
 from jongji.models.user import User
 from jongji.schemas.project import ProjectCreate, ProjectMemberAdd, ProjectUpdate
+from jongji.services.member_mixin import (
+    assert_not_duplicate,
+    build_member_dict,
+    delete_member_or_raise,
+    fetch_member_or_none,
+    fetch_user_or_raise,
+)
 from jongji.utils.safe_update import safe_update
 from jongji.utils.slug import generate_slug
 
@@ -214,26 +221,12 @@ async def get_members(project_id: uuid.UUID, db: AsyncSession) -> list[dict]:
     Returns:
         멤버 정보 딕셔너리 목록.
     """
-    from jongji.models.user import User
-
     result = await db.execute(
         select(ProjectMember, User)
         .join(User, ProjectMember.user_id == User.id)
         .where(ProjectMember.project_id == project_id)
     )
-    rows = result.all()
-    members = []
-    for pm, user in rows:
-        members.append({
-            "id": pm.id,
-            "user_id": pm.user_id,
-            "user_name": user.name,
-            "user_email": user.email,
-            "role": pm.role,
-            "min_alert_priority": pm.min_alert_priority,
-            "created_at": pm.created_at,
-        })
-    return members
+    return [build_member_dict(pm, user) for pm, user in result.all()]
 
 
 async def add_member(
@@ -254,30 +247,25 @@ async def add_member(
     Raises:
         ValueError: 팀 멤버가 아니거나 이미 프로젝트 멤버인 경우.
     """
-    from jongji.models.user import User
-
     try:
         project = await get_project(project_id, db)
 
         # 해당 사용자가 팀 멤버인지 검증
-        team_check = await db.execute(
-            select(TeamMember).where(
-                TeamMember.team_id == project.team_id,
-                TeamMember.user_id == data.user_id,
-            )
+        team_member = await fetch_member_or_none(
+            TeamMember,
+            (TeamMember.team_id == project.team_id) & (TeamMember.user_id == data.user_id),
+            db,
         )
-        if not team_check.scalar_one_or_none():
+        if not team_member:
             raise ValueError("해당 사용자는 팀 멤버가 아닙니다.")
 
         # 이미 프로젝트 멤버인지 검증
-        existing = await db.execute(
-            select(ProjectMember).where(
-                ProjectMember.project_id == project_id,
-                ProjectMember.user_id == data.user_id,
-            )
+        await assert_not_duplicate(
+            ProjectMember,
+            (ProjectMember.project_id == project_id) & (ProjectMember.user_id == data.user_id),
+            "이미 프로젝트 멤버입니다.",
+            db,
         )
-        if existing.scalar_one_or_none():
-            raise ValueError("이미 프로젝트 멤버입니다.")
 
         try:
             role = ProjectRole(data.role)
@@ -292,17 +280,8 @@ async def add_member(
         await db.flush()
         await db.refresh(pm)
 
-        user_result = await db.execute(select(User).where(User.id == data.user_id))
-        user = user_result.scalar_one()
-        return {
-            "id": pm.id,
-            "user_id": pm.user_id,
-            "user_name": user.name,
-            "user_email": user.email,
-            "role": pm.role,
-            "min_alert_priority": pm.min_alert_priority,
-            "created_at": pm.created_at,
-        }
+        user = await fetch_user_or_raise(data.user_id, db)
+        return build_member_dict(pm, user)
     except ValueError:
         raise
     except Exception:
@@ -321,17 +300,12 @@ async def remove_member(project_id: uuid.UUID, user_id: uuid.UUID, db: AsyncSess
     Raises:
         ValueError: 해당 멤버를 찾을 수 없는 경우.
     """
-    result = await db.execute(
-        select(ProjectMember).where(
-            ProjectMember.project_id == project_id,
-            ProjectMember.user_id == user_id,
-        )
+    await delete_member_or_raise(
+        ProjectMember,
+        (ProjectMember.project_id == project_id) & (ProjectMember.user_id == user_id),
+        "프로젝트 멤버를 찾을 수 없습니다.",
+        db,
     )
-    pm = result.scalar_one_or_none()
-    if not pm:
-        raise ValueError("프로젝트 멤버를 찾을 수 없습니다.")
-    await db.delete(pm)
-    await db.flush()
 
 
 async def check_project_permission(user: User, project_id: uuid.UUID, db: AsyncSession) -> bool:

@@ -4,9 +4,10 @@ Task CRUD, 태그 추출, 담당자 프로젝트 멤버 검증 등 비즈니스 
 """
 
 import uuid
+from datetime import datetime
 
 from loguru import logger
-from sqlalchemy import and_, delete, select
+from sqlalchemy import Select, and_, delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
@@ -45,6 +46,130 @@ async def _verify_project_member(
     return result.scalar_one_or_none() is not None
 
 
+async def _validate_assignee(
+    project_id: uuid.UUID, assignee_id: uuid.UUID | None, db: AsyncSession
+) -> None:
+    """담당자가 프로젝트 멤버인지 검증합니다.
+
+    Args:
+        project_id: 프로젝트 UUID.
+        assignee_id: 담당자 UUID. None이면 검증을 건너뜁니다.
+        db: 비동기 DB 세션.
+
+    Raises:
+        ValueError: 담당자가 프로젝트 멤버가 아닌 경우.
+    """
+    if assignee_id and not await _verify_project_member(project_id, assignee_id, db):
+        raise ValueError("담당자가 프로젝트 멤버가 아닙니다.")
+
+
+def _validate_update_fields(update_data: dict) -> None:
+    """업데이트 데이터에 허용되지 않은 필드가 있는지 검사합니다.
+
+    Args:
+        update_data: model_dump(exclude_unset=True) 결과 딕셔너리.
+
+    Raises:
+        ValueError: 허용되지 않은 필드가 포함된 경우.
+    """
+    disallowed = set(update_data.keys()) - _UPDATABLE_FIELDS
+    if disallowed:
+        logger.warning(f"허용되지 않은 태스크 필드 수정 시도: {disallowed}")
+        raise ValueError(f"수정할 수 없는 필드: {disallowed}")
+
+
+def _record_field_changes(
+    task: Task, update_data: dict, user_id: uuid.UUID
+) -> list[TaskHistory]:
+    """변경된 필드를 감지하여 TaskHistory 레코드 목록을 생성합니다.
+
+    각 필드의 이전 값과 새 값을 비교하고, task 속성을 새 값으로 갱신합니다.
+
+    Args:
+        task: 수정 대상 Task 객체.
+        update_data: 수정할 필드와 값의 딕셔너리.
+        user_id: 수정 요청 사용자 UUID.
+
+    Returns:
+        변경이 있는 필드에 대한 TaskHistory 레코드 목록.
+    """
+    history_records: list[TaskHistory] = []
+    for field_name, new_value in update_data.items():
+        old_value = getattr(task, field_name, None)
+        old_str = str(old_value) if old_value is not None else None
+        new_str = str(new_value) if new_value is not None else None
+        if old_str != new_str:
+            history_records.append(
+                TaskHistory(
+                    task_id=task.id,
+                    user_id=user_id,
+                    field=field_name,
+                    old_value=old_str,
+                    new_value=new_str,
+                )
+            )
+            setattr(task, field_name, new_value)
+    return history_records
+
+
+def _apply_task_filters(
+    query: Select,
+    status: TaskStatus | None,
+    assignee_id: uuid.UUID | None,
+    priority: int | None,
+) -> Select:
+    """작업 목록 쿼리에 선택적 필터를 적용합니다.
+
+    Args:
+        query: 기본 SQLAlchemy SELECT 쿼리.
+        status: 상태 필터. None이면 적용하지 않습니다.
+        assignee_id: 담당자 UUID 필터. None이면 적용하지 않습니다.
+        priority: 우선순위 필터. None이면 적용하지 않습니다.
+
+    Returns:
+        필터가 적용된 SELECT 쿼리.
+    """
+    if status:
+        query = query.where(Task.status == status)
+    if assignee_id:
+        query = query.where(Task.assignee_id == assignee_id)
+    if priority is not None:
+        query = query.where(Task.priority == priority)
+    return query
+
+
+def _apply_cursor(query: Select, cursor: str) -> Select:
+    """커서 기반 페이지네이션 조건을 쿼리에 적용합니다.
+
+    커서 형식: ``created_at_isoformat|task_uuid``
+
+    Args:
+        query: 기본 SELECT 쿼리.
+        cursor: 페이지네이션 커서 문자열.
+
+    Returns:
+        커서 조건이 적용된 쿼리. 형식이 올바르지 않으면 원본 쿼리를 반환합니다.
+    """
+    try:
+        parts = cursor.split("|")
+        if len(parts) == 2:
+            cursor_ts = datetime.fromisoformat(parts[0])
+            cursor_id = uuid.UUID(parts[1])
+            query = query.where(
+                (Task.created_at < cursor_ts)
+                | (
+                    and_(
+                        Task.created_at == cursor_ts,
+                        Task.id < cursor_id,
+                    )
+                )
+            )
+    except ValueError:
+        # 잘못된 cursor 형식이면 무시하고 처음부터 조회
+        pass
+    return query
+
+
 async def create_task(
     project_id: uuid.UUID,
     data: TaskCreate,
@@ -75,9 +200,7 @@ async def create_task(
     if not project:
         raise ValueError("프로젝트를 찾을 수 없습니다.")
 
-    # 담당자 검증
-    if data.assignee_id and not await _verify_project_member(project_id, data.assignee_id, db):
-        raise ValueError("담당자가 프로젝트 멤버가 아닙니다.")
+    await _validate_assignee(project_id, data.assignee_id, db)
 
     # task_counter 증가
     new_number = project.task_counter + 1
@@ -98,7 +221,6 @@ async def create_task(
     db.add(task)
     await db.flush()
 
-    # 태그 동기화
     await tag_service.sync_tags(task.id, data.title, data.description, db)
 
     return task
@@ -224,6 +346,7 @@ async def update_task(
 
     Raises:
         ValueError: 작업이 없거나 권한이 없는 경우.
+        PermissionError: 수정 권한이 없는 경우.
     """
     task = await get_task(task_id, db)
     if not task:
@@ -235,36 +358,15 @@ async def update_task(
     update_data = data.model_dump(exclude_unset=True)
 
     # 허용되지 않은 필드 차단 (H-04 Mass Assignment 방지)
-    disallowed = set(update_data.keys()) - _UPDATABLE_FIELDS
-    if disallowed:
-        logger.warning(f"허용되지 않은 태스크 필드 수정 시도: {disallowed}")
-        raise ValueError(f"수정할 수 없는 필드: {disallowed}")
+    _validate_update_fields(update_data)
 
     # 담당자 변경 시 멤버 검증
-    if (
-        "assignee_id" in update_data
-        and update_data["assignee_id"] is not None
-        and not await _verify_project_member(task.project_id, update_data["assignee_id"], db)
-    ):
-        raise ValueError("담당자가 프로젝트 멤버가 아닙니다.")
+    await _validate_assignee(task.project_id, update_data.get("assignee_id"), db)
 
     # 변경 이력 기록 — 타입 안전한 비교 (str() 비교는 None/"None" 오탐 유발)
-    for field_name, new_value in update_data.items():
-        old_value = getattr(task, field_name, None)
-        # UUID 등 타입이 다를 수 있으므로 str 변환 후 비교하되, None은 별도 처리
-        old_str = str(old_value) if old_value is not None else None
-        new_str = str(new_value) if new_value is not None else None
-        if old_str != new_str:
-            db.add(
-                TaskHistory(
-                    task_id=task.id,
-                    user_id=user.id,
-                    field=field_name,
-                    old_value=old_str,
-                    new_value=new_str,
-                )
-            )
-            setattr(task, field_name, new_value)
+    history_records = _record_field_changes(task, update_data, user.id)
+    for record in history_records:
+        db.add(record)
 
     await db.flush()
 
@@ -339,33 +441,10 @@ async def list_tasks(
         .order_by(Task.created_at.desc(), Task.id.desc())
     )
 
-    if status:
-        query = query.where(Task.status == status)
-    if assignee_id:
-        query = query.where(Task.assignee_id == assignee_id)
-    if priority is not None:
-        query = query.where(Task.priority == priority)
+    query = _apply_task_filters(query, status, assignee_id, priority)
 
     if cursor:
-        try:
-            parts = cursor.split("|")
-            if len(parts) == 2:
-                from datetime import datetime
-
-                cursor_ts = datetime.fromisoformat(parts[0])
-                cursor_id = uuid.UUID(parts[1])
-                query = query.where(
-                    (Task.created_at < cursor_ts)
-                    | (
-                        and_(
-                            Task.created_at == cursor_ts,
-                            Task.id < cursor_id,
-                        )
-                    )
-                )
-        except ValueError:
-            # 잘못된 cursor 형식이면 무시하고 처음부터 조회
-            pass
+        query = _apply_cursor(query, cursor)
 
     query = query.limit(limit + 1)
     result = await db.execute(query)

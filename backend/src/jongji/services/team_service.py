@@ -15,6 +15,11 @@ from jongji.models.project import Project
 from jongji.models.team import Team, TeamMember
 from jongji.models.user import User
 from jongji.schemas.team import TeamUpdate
+from jongji.services.member_mixin import (
+    assert_not_duplicate,
+    delete_member_or_raise,
+    fetch_user_or_raise,
+)
 from jongji.utils.safe_update import safe_update
 from jongji.utils.slug import generate_slug
 
@@ -220,18 +225,14 @@ async def add_member(
         if not team:
             raise ValueError("팀을 찾을 수 없습니다.")
 
-        user_result = await db.execute(select(User).where(User.id == user_id))
-        user = user_result.scalar_one_or_none()
-        if not user:
-            raise ValueError("사용자를 찾을 수 없습니다.")
+        await fetch_user_or_raise(user_id, db)
 
-        existing = await db.execute(
-            select(TeamMember).where(
-                TeamMember.team_id == team_id, TeamMember.user_id == user_id
-            )
+        await assert_not_duplicate(
+            TeamMember,
+            (TeamMember.team_id == team_id) & (TeamMember.user_id == user_id),
+            "이미 팀 멤버입니다.",
+            db,
         )
-        if existing.scalar_one_or_none():
-            raise ValueError("이미 팀 멤버입니다.")
 
         team_role = TeamRole.LEADER if role == "leader" else TeamRole.MEMBER
         membership = TeamMember(team_id=team_id, user_id=user_id, role=team_role)
@@ -258,17 +259,12 @@ async def remove_member(team_id: uuid.UUID, user_id: uuid.UUID, db: AsyncSession
         ValueError: 멤버를 찾을 수 없는 경우.
     """
     try:
-        result = await db.execute(
-            select(TeamMember).where(
-                TeamMember.team_id == team_id, TeamMember.user_id == user_id
-            )
+        await delete_member_or_raise(
+            TeamMember,
+            (TeamMember.team_id == team_id) & (TeamMember.user_id == user_id),
+            "팀 멤버를 찾을 수 없습니다.",
+            db,
         )
-        membership = result.scalar_one_or_none()
-        if not membership:
-            raise ValueError("팀 멤버를 찾을 수 없습니다.")
-
-        await db.delete(membership)
-        await db.flush()
     except ValueError:
         raise
     except Exception:
