@@ -151,7 +151,7 @@ async def get_task_by_number(
     return result.unique().scalar_one_or_none()
 
 
-async def _check_update_permission(
+async def check_update_permission(
     task: Task, user: User, db: AsyncSession
 ) -> bool:
     """작업 수정 권한을 확인합니다.
@@ -229,7 +229,7 @@ async def update_task(
     if not task:
         raise ValueError("작업을 찾을 수 없습니다.")
 
-    if not await _check_update_permission(task, user, db):
+    if not await check_update_permission(task, user, db):
         raise PermissionError("작업을 수정할 권한이 없습니다.")
 
     update_data = data.model_dump(exclude_unset=True)

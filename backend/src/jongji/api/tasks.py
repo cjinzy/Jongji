@@ -28,6 +28,7 @@ from jongji.schemas.task import (
     TaskUpdate,
 )
 from jongji.services import task_service
+from jongji.services.task_service import check_update_permission
 from jongji.services.transition_service import (
     MAX_BLOCKED_BY,
     check_blocked_by,
@@ -282,8 +283,7 @@ async def delete_task(
     if not task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="작업을 찾을 수 없습니다.")
 
-    from jongji.services.task_service import _check_update_permission
-    if not await _check_update_permission(task, user, db):
+    if not await check_update_permission(task, user, db):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="작업을 보관할 권한이 없습니다.")
 
     try:
@@ -355,8 +355,7 @@ async def update_task_status(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="작업을 찾을 수 없습니다.")
 
     # 권한 검사
-    from jongji.services.task_service import _check_update_permission
-    if not await _check_update_permission(task, user, db):
+    if not await check_update_permission(task, user, db):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="상태를 변경할 권한이 없습니다.")
 
     # 전환 유효성 검사

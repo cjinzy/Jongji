@@ -35,6 +35,11 @@ from jongji.api.users import router as users_router
 from jongji.config import settings
 from jongji.mcp.tools import mcp
 from jongji.services.alert.scheduler import start_scheduler, stop_scheduler
+from jongji.utils.exceptions import (
+    generic_error_handler,
+    permission_error_handler,
+    value_error_handler,
+)
 
 # loguru JSON 로깅 설정
 logger.remove()
@@ -56,6 +61,10 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title=settings.APP_NAME, lifespan=lifespan)
+
+app.add_exception_handler(ValueError, value_error_handler)
+app.add_exception_handler(PermissionError, permission_error_handler)
+app.add_exception_handler(Exception, generic_error_handler)
 
 app.add_middleware(
     CORSMiddleware,
