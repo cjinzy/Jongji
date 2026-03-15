@@ -1,5 +1,6 @@
 import { useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router'
+import { KEYBOARD_SHORTCUTS } from '../constants/shortcuts'
 
 /**
  * Returns true when the event target is an interactive input element
@@ -33,20 +34,10 @@ export interface KeyboardShortcutOptions {
 }
 
 /**
- * Registers global keyboard shortcuts following the Linear-style convention.
+ * Registers global keyboard shortcuts defined in `constants/shortcuts.ts`.
+ * This hook is responsible only for event listener registration/cleanup.
  *
- * Shortcuts:
- *   c          → create task
- *   k          → navigate up
- *   j          → navigate down
- *   /          → focus search
- *   Cmd/Ctrl+K → command palette
- *   1          → Kanban view
- *   2          → Table view
- *   3          → Gantt view
- *   4          → Dashboard view
- *   Escape     → close panel / modal
- *
+ * Shortcut definitions live in {@link KEYBOARD_SHORTCUTS}.
  * All single-key shortcuts are suppressed when an input field has focus.
  */
 export function useKeyboardShortcuts(options: KeyboardShortcutOptions = {}) {
@@ -65,66 +56,34 @@ export function useKeyboardShortcuts(options: KeyboardShortcutOptions = {}) {
     (e: KeyboardEvent) => {
       const isMac = navigator.platform.toUpperCase().includes('MAC')
       const modifier = isMac ? e.metaKey : e.ctrlKey
+      const inputFocused = isInputFocused(e)
 
-      // Cmd/Ctrl+K — command palette (fires even inside inputs)
-      if (modifier && e.key === 'k') {
-        e.preventDefault()
-        onCommandPalette?.()
-        return
+      const handlers: Record<string, (() => void) | undefined> = {
+        onCreateTask,
+        onSearch,
+        onCommandPalette,
+        onNavigateUp,
+        onNavigateDown,
+        onClose,
       }
 
-      // Escape — close panel/modal (fires even inside inputs)
-      if (e.key === 'Escape') {
-        onClose?.()
-        return
-      }
+      for (const shortcut of KEYBOARD_SHORTCUTS) {
+        if (e.key !== shortcut.key) continue
+        if (shortcut.modifier && !modifier) continue
+        if (!shortcut.modifier && !shortcut.ignoresInput && modifier) continue
+        if (!shortcut.ignoresInput && inputFocused) continue
 
-      // All remaining shortcuts are suppressed inside inputs
-      if (isInputFocused(e)) return
+        if (shortcut.preventDefault) e.preventDefault()
 
-      switch (e.key) {
-        case 'c':
-          e.preventDefault()
-          onCreateTask?.()
-          break
+        if (shortcut.navigateTo) {
+          navigate(shortcut.navigateTo)
+          return
+        }
 
-        case 'k':
-          e.preventDefault()
-          onNavigateUp?.()
-          break
-
-        case 'j':
-          e.preventDefault()
-          onNavigateDown?.()
-          break
-
-        case '/':
-          e.preventDefault()
-          onSearch?.()
-          break
-
-        case '1':
-          e.preventDefault()
-          navigate('kanban')
-          break
-
-        case '2':
-          e.preventDefault()
-          navigate('table')
-          break
-
-        case '3':
-          e.preventDefault()
-          navigate('gantt')
-          break
-
-        case '4':
-          e.preventDefault()
-          navigate('dashboard')
-          break
-
-        default:
-          break
+        if (shortcut.handler) {
+          handlers[shortcut.handler]?.()
+          return
+        }
       }
     },
     [

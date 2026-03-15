@@ -146,19 +146,15 @@ export default function AttachmentUploader({
   return (
     <div className="flex flex-col gap-2">
       {/* Drop zone */}
-      <div
-        role="button"
-        tabIndex={0}
+      <button
+        type="button"
         aria-label="Upload attachments — click or drag and drop files here"
         onClick={() => inputRef.current?.click()}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') inputRef.current?.click()
-        }}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
         onDrop={onDrop}
         className={`
-          border-2 border-dashed rounded-xl p-6 text-center cursor-pointer
+          w-full border-2 border-dashed rounded-xl p-6 text-center cursor-pointer
           transition-colors duration-150 select-none
           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary
           ${
@@ -200,7 +196,7 @@ export default function AttachmentUploader({
           tabIndex={-1}
           onChange={onInputChange}
         />
-      </div>
+      </button>
 
       {/* Per-file progress / error list */}
       {pending.length > 0 && (

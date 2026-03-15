@@ -1,59 +1,8 @@
-import {
-  AttachRegular,
-  DocumentRegular,
-  ImageRegular,
-  DeleteRegular,
-  DocumentPdfRegular,
-  DocumentTextRegular,
-  ArrowDownloadRegular,
-} from '@fluentui/react-icons'
+import { AttachRegular, DeleteRegular, ArrowDownloadRegular } from '@fluentui/react-icons'
 import { useTaskAttachments, useDeleteAttachment } from '../hooks/useAttachments'
 import { attachmentsApi } from '../api/attachments'
 import type { AttachmentResponse } from '../types/attachment'
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Format raw byte count into a human-readable string (e.g. "1.2 MB").
- */
-export function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  if (bytes < 1024 * 1024 * 1024)
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`
-}
-
-function isImage(contentType: string): boolean {
-  return contentType.startsWith('image/')
-}
-
-function isPdf(contentType: string): boolean {
-  return contentType === 'application/pdf'
-}
-
-function isText(contentType: string): boolean {
-  return contentType.startsWith('text/')
-}
-
-/** Pick the right Fluent icon component for a content type. */
-function FileIcon({
-  contentType,
-  className,
-}: {
-  contentType: string
-  className?: string
-}) {
-  if (isImage(contentType))
-    return <ImageRegular className={className ?? 'w-4 h-4'} />
-  if (isPdf(contentType))
-    return <DocumentPdfRegular className={className ?? 'w-4 h-4'} />
-  if (isText(contentType))
-    return <DocumentTextRegular className={className ?? 'w-4 h-4'} />
-  return <DocumentRegular className={className ?? 'w-4 h-4'} />
-}
+import { formatFileSize, FileIcon, isImage } from '../utils/file'
 
 // ---------------------------------------------------------------------------
 // Single attachment row
