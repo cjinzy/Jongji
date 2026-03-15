@@ -12,7 +12,7 @@ test.describe('Setup Wizard', () => {
 
     // ── Step 1: Admin Account ────────────────────────────────────────────────
     await expect(page.getByText('Create Admin Account')).toBeVisible()
-    await expect(page.getByText('Admin Account')).toBeVisible()
+    await expect(page.getByText('Admin Account', { exact: true })).toBeVisible()
 
     // Fill admin name — label text is "Admin Name" (uppercase via CSS, value is "Admin Name")
     await page.getByPlaceholder('Jane Doe').fill(TEST_ADMIN.name)
@@ -36,7 +36,11 @@ test.describe('Setup Wizard', () => {
 
     await page.getByRole('button', { name: 'Next' }).click()
 
-    // ── Step 3: Confirm ──────────────────────────────────────────────────────
+    // ── Step 3: Google OAuth (Optional) ─────────────────────────────────────
+    await expect(page.getByText('Google OAuth (Optional)')).toBeVisible()
+    await page.getByRole('button', { name: 'Skip' }).click()
+
+    // ── Step 4: Confirm ──────────────────────────────────────────────────────
     await expect(page.getByText('Confirm Setup')).toBeVisible()
 
     // Review shows the admin email and app name
