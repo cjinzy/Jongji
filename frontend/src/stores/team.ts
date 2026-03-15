@@ -1,36 +1,28 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Team, Project } from '../api/teams'
+import type { Team } from '../api/teams'
 
+/**
+ * UI-only state for team selection and pinned projects.
+ * Server data (teams list, projects list) is managed by TanStack Query — not stored here.
+ */
 interface TeamStore {
-  /** All teams the user belongs to */
-  teams: Team[]
-  /** Currently selected team */
+  /** Currently selected team (persisted for session continuity) */
   selectedTeam: Team | null
-  /** Projects of the selected team */
-  projects: Project[]
-  /** IDs of pinned (favorite) projects */
+  /** IDs of pinned (favorite) projects (persisted user preference) */
   pinnedProjectIds: string[]
 
-  setTeams: (teams: Team[]) => void
   setSelectedTeam: (team: Team) => void
-  setProjects: (projects: Project[]) => void
   togglePinnedProject: (projectId: string) => void
 }
 
 export const useTeamStore = create<TeamStore>()(
   persist(
     (set, get) => ({
-      teams: [],
       selectedTeam: null,
-      projects: [],
       pinnedProjectIds: [],
 
-      setTeams: (teams) => set({ teams }),
-
-      setSelectedTeam: (team) => set({ selectedTeam: team, projects: [] }),
-
-      setProjects: (projects) => set({ projects }),
+      setSelectedTeam: (team) => set({ selectedTeam: team }),
 
       togglePinnedProject: (projectId) => {
         const { pinnedProjectIds } = get()

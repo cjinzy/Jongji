@@ -14,21 +14,18 @@ export function TeamSelector() {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
-  const { selectedTeam, teams, setTeams, setSelectedTeam } = useTeamStore()
+  const { selectedTeam, setSelectedTeam } = useTeamStore()
 
-  const { data } = useQuery({
+  const { data: teams } = useQuery({
     queryKey: ['teams'],
     queryFn: teamsApi.list,
   })
 
   useEffect(() => {
-    if (data) {
-      setTeams(data)
-      if (!selectedTeam && data.length > 0) {
-        setSelectedTeam(data[0])
-      }
+    if (teams && !selectedTeam && teams.length > 0) {
+      setSelectedTeam(teams[0])
     }
-  }, [data, selectedTeam, setTeams, setSelectedTeam])
+  }, [teams, selectedTeam, setSelectedTeam])
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -83,7 +80,7 @@ export function TeamSelector() {
           className="absolute left-0 right-0 top-full mt-1 z-50 bg-bg-tertiary border border-border rounded-lg shadow-2xl overflow-hidden"
           role="listbox"
         >
-          {teams.map((team) => (
+          {(teams ?? []).map((team) => (
             <button
               key={team.id}
               role="option"

@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
@@ -22,7 +21,7 @@ export default function TeamPage() {
   const { t } = useTranslation()
   const { teamId = '' } = useParams<{ teamId: string }>()
   const navigate = useNavigate()
-  const { pinnedProjectIds, togglePinnedProject, setProjects } = useTeamStore()
+  const { pinnedProjectIds, togglePinnedProject } = useTeamStore()
 
   const { data: teams } = useQuery({
     queryKey: ['teams'],
@@ -31,15 +30,12 @@ export default function TeamPage() {
 
   const team = teams?.find((t) => t.id === teamId)
 
+  // Server state managed by TanStack Query (single source of truth)
   const { data: projects, isLoading } = useQuery({
     queryKey: ['projects', teamId],
     queryFn: () => teamsApi.listProjects(teamId),
     enabled: !!teamId,
   })
-
-  useEffect(() => {
-    if (projects) setProjects(projects)
-  }, [projects, setProjects])
 
   const pinned = projects?.filter((p) => pinnedProjectIds.includes(p.id)) ?? []
   const rest = projects?.filter((p) => !pinnedProjectIds.includes(p.id)) ?? []

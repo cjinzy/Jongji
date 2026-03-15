@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { useParams, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -342,6 +343,18 @@ export default function TablePage() {
     navigate(`/teams/${teamId}/projects/${projKey}/tasks/${number}`)
   }
 
+  /** Scroll container ref for the virtualizer */
+  const parentRef = useRef<HTMLDivElement>(null)
+
+  const ROW_HEIGHT = 41 // px — matches py-2.5 rows
+
+  const rowVirtualizer = useVirtualizer({
+    count: tasks.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 10,
+  })
+
   return (
     <div className="flex flex-col h-full min-h-0">
       {/* Toolbar */}
@@ -363,7 +376,7 @@ export default function TablePage() {
       </div>
 
       {/* Table */}
-      <div className="flex-1 overflow-auto min-h-0">
+      <div ref={parentRef} className="flex-1 overflow-auto min-h-0">
         {isLoading && !page ? (
           <div className="flex items-center justify-center h-32 text-text-tertiary text-xs font-mono">
             {t('common.loading')}
@@ -427,17 +440,34 @@ export default function TablePage() {
                 />
               </tr>
             </thead>
+            {/* Virtual tbody: total height via spacer rows, only visible rows rendered */}
             <tbody>
-              {tasks.map((task, idx) => (
-                <TableRow
-                  key={task.id}
-                  task={task}
-                  projectId={project?.id ?? ''}
-                  projKey={projKey}
-                  striped={idx % 2 === 1}
-                  onClick={() => openTask(task.number)}
+              {rowVirtualizer.getTotalSize() > 0 && (
+                <tr style={{ height: rowVirtualizer.getVirtualItems()[0]?.start ?? 0 }} aria-hidden />
+              )}
+              {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                const task = tasks[virtualRow.index]
+                return (
+                  <TableRow
+                    key={task.id}
+                    task={task}
+                    projectId={project?.id ?? ''}
+                    projKey={projKey}
+                    striped={virtualRow.index % 2 === 1}
+                    onClick={() => openTask(task.number)}
+                  />
+                )
+              })}
+              {rowVirtualizer.getTotalSize() > 0 && (
+                <tr
+                  style={{
+                    height:
+                      rowVirtualizer.getTotalSize() -
+                      (rowVirtualizer.getVirtualItems().at(-1)?.end ?? 0),
+                  }}
+                  aria-hidden
                 />
-              ))}
+              )}
             </tbody>
           </table>
         )}

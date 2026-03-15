@@ -70,7 +70,7 @@ function TipCard({
 export default function OnboardingPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { setTeams, setSelectedTeam, setProjects } = useTeamStore()
+  const { setSelectedTeam } = useTeamStore()
 
   const [step, setStep] = useState(0)
   const [mode, setMode] = useState<'create' | 'join'>('create')
@@ -82,7 +82,7 @@ export default function OnboardingPage() {
   const createTeamMutation = useMutation({
     mutationFn: teamsApi.create,
     onSuccess: (team) => {
-      setTeams([team])
+      // Persist selected team in UI state; server data is refetched by TanStack Query automatically
       setSelectedTeam(team)
       setCreatedTeamId(team.id)
       setStep(1)
@@ -93,8 +93,7 @@ export default function OnboardingPage() {
   const createProjectMutation = useMutation({
     mutationFn: ({ teamId, payload }: { teamId: string; payload: typeof projectForm }) =>
       teamsApi.createProject(teamId, payload),
-    onSuccess: (project) => {
-      setProjects([project])
+    onSuccess: () => {
       setStep(2)
     },
     onError: () => setError('Failed to create project'),

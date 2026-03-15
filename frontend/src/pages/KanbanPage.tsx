@@ -43,7 +43,7 @@ const COLUMN_CONFIG: Record<
  * Implements optimistic UI: tasks move immediately on drop, rolling back on error.
  */
 export default function KanbanPage() {
-  const { projectId, projKey, teamId } = useResolvedProjectId()
+  const { projectId } = useResolvedProjectId()
   const { t } = useTranslation()
 
   // ---------------------------------------------------------------------------

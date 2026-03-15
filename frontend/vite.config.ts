@@ -14,6 +14,18 @@ export default defineConfig({
       ),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router'],
+          'query-vendor': ['@tanstack/react-query'],
+          'ui-vendor': ['recharts', '@tiptap/react', '@tiptap/starter-kit', '@fluentui/react-icons'],
+          'i18n-vendor': ['i18next', 'react-i18next'],
+        },
+      },
+    },
+  },
   server: {
     proxy: {
       '/api': {
