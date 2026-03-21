@@ -31,6 +31,15 @@ from jongji.services.auth_service import (
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
+@router.get("/dev-status")
+async def dev_status():
+    """인증 비활성화 상태를 반환합니다.
+
+    AUTH_DISABLED 환경 변수가 true이면 인증 없이 앱을 사용할 수 있습니다.
+    """
+    return {"auth_disabled": settings.AUTH_DISABLED}
+
+
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 async def register_user(
     data: UserCreate,

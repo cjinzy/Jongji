@@ -47,3 +47,11 @@ export async function getMeApi(): Promise<User> {
   const res = await apiClient.get<User>('/users/me')
   return res.data
 }
+
+/**
+ * Check if authentication is disabled (dev/test mode).
+ */
+export async function getDevStatusApi(): Promise<{ auth_disabled: boolean }> {
+  const res = await apiClient.get<{ auth_disabled: boolean }>('/auth/dev-status')
+  return res.data
+}

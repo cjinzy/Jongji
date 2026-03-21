@@ -22,7 +22,14 @@ export default function LoginPage() {
     queryKey: ['setup', 'status'],
     queryFn: setupApi.getStatus,
   })
+  const setupCompleted = (setupStatus as { setup_completed?: boolean } | undefined)?.setup_completed
   const oauthAvailable = (setupStatus as { oauth_available?: boolean } | undefined)?.oauth_available ?? false
+
+  // Setup 미완료 시 setup 페이지로 리다이렉트
+  if (setupCompleted === false) {
+    navigate('/setup', { replace: true })
+    return null
+  }
 
   const mutation = useMutation({
     mutationFn: async () => {

@@ -29,9 +29,12 @@ const AdminPage = lazy(() => import('./pages/AdminPage'))
 // ── Root redirect — persists the last visited path ───────────────────────────
 
 function RootRedirect() {
-  const raw = localStorage.getItem('jongji-last-view') ?? '/login'
-  const safePath = raw.startsWith('/') && !raw.startsWith('//') ? raw : '/login'
-  return <Navigate to={safePath} replace />
+  const raw = localStorage.getItem('jongji-last-view')
+  if (raw && raw.startsWith('/') && !raw.startsWith('//')) {
+    return <Navigate to={raw} replace />
+  }
+  // No last view — ProtectedRoute will handle setup vs login redirect
+  return <Navigate to="/onboarding" replace />
 }
 
 // ── Full-screen loading fallback ──────────────────────────────────────────────

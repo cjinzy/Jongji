@@ -30,6 +30,7 @@ async def get_current_user(
     """현재 인증된 사용자를 반환합니다.
 
     Bearer 토큰에서 사용자 ID를 추출하고 DB에서 조회합니다.
+    AUTH_DISABLED=true인 경우 첫 번째 관리자 사용자를 자동 반환합니다.
 
     Args:
         credentials: HTTP Bearer 인증 정보.
@@ -41,6 +42,15 @@ async def get_current_user(
     Raises:
         HTTPException: 인증 실패 시 401 또는 403.
     """
+    if settings.AUTH_DISABLED:
+        result = await db.execute(
+            select(User).where(User.is_admin.is_(True), User.is_active.is_(True)).limit(1)
+        )
+        user = result.scalar_one_or_none()
+        if user:
+            return user
+        logger.warning("AUTH_DISABLED이지만 활성 관리자 사용자가 없습니다. 먼저 setup을 실행하세요.")
+
     if not credentials:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="인증이 필요합니다.")
 

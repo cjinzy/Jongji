@@ -105,10 +105,10 @@ mcp_app.add_middleware(
 )
 app.mount("/mcp", mcp_app)
 
-# E2E 테스트 전용 라우터 (E2E_TESTING=true일 때만 활성화)
-if os.environ.get("E2E_TESTING") == "true":
+# 테스트/개발 전용 라우터 (E2E_TESTING=true 또는 AUTH_DISABLED=true일 때 활성화)
+if os.environ.get("E2E_TESTING") == "true" or settings.AUTH_DISABLED:
     from jongji.api.testing import router as testing_router, setup_router as e2e_setup_router
 
     app.include_router(testing_router, prefix="/api/v1")
     app.include_router(e2e_setup_router, prefix="/api/v1")
-    logger.warning("E2E testing endpoints enabled — DO NOT use in production")
+    logger.warning("Dev/test endpoints enabled — DO NOT use in production")
