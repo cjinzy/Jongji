@@ -24,7 +24,8 @@ class AlertConfig(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     channel: Mapped[AlertChannel] = mapped_column(
-        ENUM(AlertChannel, name="alertchannel", create_type=True), nullable=False
+        ENUM(AlertChannel, name="alertchannel", create_type=True, values_callable=lambda e: [x.value for x in e]),
+        nullable=False,
     )
     is_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     webhook_url: Mapped[str | None] = mapped_column(String, nullable=True)
@@ -52,7 +53,8 @@ class AlertLog(Base):
     event_type: Mapped[str | None] = mapped_column(String, nullable=True)
     channel: Mapped[str] = mapped_column(String, nullable=False)
     status: Mapped[AlertLogStatus] = mapped_column(
-        ENUM(AlertLogStatus, name="alertlogstatus", create_type=True), default=AlertLogStatus.PENDING
+        ENUM(AlertLogStatus, name="alertlogstatus", create_type=True, values_callable=lambda e: [x.value for x in e]),
+        default=AlertLogStatus.PENDING,
     )
     retry_count: Mapped[int] = mapped_column(Integer, default=0)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)

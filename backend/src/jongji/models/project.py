@@ -68,7 +68,10 @@ class ProjectMember(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False)
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    role: Mapped[ProjectRole] = mapped_column(ENUM(ProjectRole, name="projectrole", create_type=True), nullable=False)
+    role: Mapped[ProjectRole] = mapped_column(
+        ENUM(ProjectRole, name="projectrole", create_type=True, values_callable=lambda e: [x.value for x in e]),
+        nullable=False,
+    )
     min_alert_priority: Mapped[int] = mapped_column(Integer, default=1)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)

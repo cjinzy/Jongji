@@ -29,7 +29,8 @@ class AuditLog(Base):
     details: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     ip_address: Mapped[str | None] = mapped_column(String, nullable=True)
     log_level: Mapped[AuditLogLevel] = mapped_column(
-        ENUM(AuditLogLevel, name="auditloglevel", create_type=True), nullable=False
+        ENUM(AuditLogLevel, name="auditloglevel", create_type=True, values_callable=lambda e: [x.value for x in e]),
+        nullable=False,
     )
     source: Mapped[str] = mapped_column(String, default="api")
     created_at: Mapped[datetime] = mapped_column(

@@ -52,7 +52,8 @@ class Task(Base):
     title: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[TaskStatus] = mapped_column(
-        ENUM(TaskStatus, name="taskstatus", create_type=True), default=TaskStatus.BACKLOG
+        ENUM(TaskStatus, name="taskstatus", create_type=True, values_callable=lambda e: [x.value for x in e]),
+        default=TaskStatus.BACKLOG,
     )
     priority: Mapped[int] = mapped_column(Integer, default=5)
     creator_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
