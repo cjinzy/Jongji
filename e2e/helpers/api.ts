@@ -111,7 +111,18 @@ export async function login(email: string, password: string): Promise<LoginResul
 // ---------------------------------------------------------------------------
 
 /**
- * Creates a team. Requires a valid access token.
+ * Builds auth headers. When token is empty (AUTH_DISABLED), omits Authorization.
+ */
+function authHeaders(token: string): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
+  }
+  return headers
+}
+
+/**
+ * Creates a team. Requires a valid access token (or empty string when AUTH_DISABLED).
  */
 export async function createTeam(
   token: string,
@@ -119,10 +130,7 @@ export async function createTeam(
 ): Promise<Team> {
   const res = await fetch(url('/teams'), {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
+    headers: authHeaders(token),
     body: JSON.stringify(data),
   })
   await assertOk(res, 'createTeam')
@@ -143,10 +151,7 @@ export async function createProject(
 ): Promise<Project> {
   const res = await fetch(url(`/teams/${teamId}/projects`), {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
+    headers: authHeaders(token),
     body: JSON.stringify(data),
   })
   await assertOk(res, 'createProject')
@@ -172,10 +177,7 @@ export async function createTask(
 ): Promise<Task> {
   const res = await fetch(url('/tasks'), {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
+    headers: authHeaders(token),
     body: JSON.stringify({
       status: 'TODO',
       priority: 0,
@@ -184,4 +186,38 @@ export async function createTask(
   })
   await assertOk(res, 'createTask')
   return res.json() as Promise<Task>
+}
+
+/**
+ * Seeds test data for feature tests: team + project + multiple tasks.
+ * Works with AUTH_DISABLED (pass empty string as token).
+ */
+export async function seedTestData(token: string): Promise<{
+  team: Team
+  project: Project
+  tasks: Task[]
+}> {
+  const team = await createTeam(token, {
+    name: 'E2E Test Team',
+    description: 'Team for E2E testing',
+  })
+  const project = await createProject(token, team.id, {
+    name: 'E2E Test Project',
+    key: 'E2E',
+    description: 'Project for E2E testing',
+  })
+
+  const statuses = ['BACKLOG', 'TODO', 'PROGRESS', 'REVIEW', 'DONE']
+  const tasks: Task[] = []
+  for (let i = 0; i < statuses.length; i++) {
+    const task = await createTask(token, {
+      project_id: project.id,
+      title: `Test Task ${i + 1}`,
+      status: statuses[i],
+      priority: i + 1,
+    })
+    tasks.push(task)
+  }
+
+  return { team, project, tasks }
 }

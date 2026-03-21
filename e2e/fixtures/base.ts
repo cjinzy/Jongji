@@ -14,6 +14,8 @@ type Fixtures = {
   setupComplete: void
   /** Fixture: setup + login, returns a page with auth cookies injected. */
   authenticatedPage: Page
+  /** Fixture: setup + AUTH_DISABLED auto-login, no token management needed. */
+  devPage: Page
 }
 
 // ---------------------------------------------------------------------------
@@ -86,6 +88,30 @@ export const test = base.extend<Fixtures>({
       localStorage.setItem('access_token', token)
       localStorage.setItem('jongji-lang', 'en')
     }, access_token)
+
+    await use(page)
+    await context.close()
+  },
+
+  // ── devPage (AUTH_DISABLED mode) ──────────────────────────────────────────
+  devPage: async ({ setupComplete: _, browser }, use) => {
+    const context = await browser.newContext({
+      baseURL: 'http://localhost:3100',
+    })
+
+    const page = await context.newPage()
+
+    // Set English locale in localStorage
+    await page.goto('http://localhost:3100/login')
+    await page.evaluate(() => {
+      localStorage.setItem('jongji-lang', 'en')
+    })
+
+    // Navigate to home — frontend will auto-detect AUTH_DISABLED and auto-login
+    await page.goto('http://localhost:3100/')
+
+    // Wait for auto-authentication to complete (user name appears in UI)
+    await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 10_000 })
 
     await use(page)
     await context.close()
